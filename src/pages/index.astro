@@ -107,7 +107,10 @@ const craft = [
             <>
               <a class="btn btn--primary" href="/download/">
                 Download Flume
-                <span class="btn__ver">{release.version}</span>
+                <span class="btn__ver">
+                  {release.version}
+                  {release.prerelease ? " RC" : ""}
+                </span>
               </a>
               <a class="btn btn--ghost" href="/docs/getting-started/">
                 Getting started

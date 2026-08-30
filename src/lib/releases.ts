@@ -5,8 +5,9 @@
  * the site, and they should work with JavaScript disabled, render with real
  * filenames and sizes in the initial HTML, and never spend a visitor's
  * unauthenticated rate limit. The cost is that the site has to be rebuilt when
- * a release is published — `.github/workflows/release.yml` pings a Sevalla
- * deploy hook to do exactly that.
+ * a release is published. `release.yml` in the app repository pings a Sevalla
+ * deploy hook to do that, when `SEVALLA_DEPLOY_HOOK` is configured; without it
+ * the site simply serves whatever it was last built with.
  *
  * Nothing here throws. A rate-limited or offline build must still produce a
  * site; it just produces one that points at the GitHub releases page instead
@@ -234,13 +235,13 @@ function toRelease(gh: GhRelease): Release {
 /**
  * A stand-in release, used when `FLUME_FAKE_RELEASE=1` is set.
  *
- * Flume has not cut 1.0 yet, so every build takes the "nothing published"
- * path and the download page's actual content — the part that matters — never
- * renders. The filenames here are exactly what `release.yml`'s bundlers emit,
- * which makes this a real test of {@link classify} rather than a mock built
- * to agree with it.
+ * Keeps CI builds hermetic: the site's own workflow must not fail because
+ * GitHub is slow, rate-limited, or mid-release, and must not depend on what
+ * happens to be published at the time it runs.
  *
- * Delete this once 1.0 is out and the live API answers.
+ * The filenames here are exactly what `release.yml`'s bundlers emit, which
+ * makes this a real exercise of {@link classify} rather than a mock built to
+ * agree with it. Update them when the bundlers change.
  */
 function fixture(): GhRelease {
   const asset = (name: string, size: number) => ({
@@ -284,19 +285,32 @@ function faking(): boolean {
 }
 
 /**
- * The current stable release.
+ * The newest release a visitor can actually download.
  *
- * Uses `/releases/latest`, which GitHub defines as the newest non-draft,
- * non-prerelease release — so a tagged release candidate does not become the
- * headline download.
+ * Prefers a stable release via `/releases/latest`, which GitHub defines as the
+ * newest non-draft, non-prerelease. When there is no stable release at all,
+ * that endpoint returns 404 — and Flume was in exactly that state while
+ * shipping release candidates, so the download page rendered its
+ * nothing-published fallback while real, downloadable installers existed.
  *
- * @returns The latest release, or `null` if none is published yet.
+ * So it falls back to the newest published pre-release. Callers must check
+ * {@link Release.prerelease} and say so: offering a release candidate is
+ * right, offering one while implying it is stable is not.
+ *
+ * Drafts are never returned. GitHub omits them from anonymous responses, and
+ * a draft is by definition something nobody should be downloading yet.
+ *
+ * @returns The newest downloadable release, or `null` if none is published.
  */
 export async function latestRelease(): Promise<Release | null> {
   if (faking()) return toRelease(fixture());
 
-  const gh = await get<GhRelease>("/releases/latest");
-  return gh ? toRelease(gh) : null;
+  const stable = await get<GhRelease>("/releases/latest");
+  if (stable) return toRelease(stable);
+
+  const all = await get<GhRelease[]>("/releases?per_page=10");
+  const newest = all?.find((r) => !r.draft);
+  return newest ? toRelease(newest) : null;
 }
 
 /**

@@ -58,7 +58,34 @@ const published = release
           Version <strong>{release.version}</strong>, released {published}. Free
           and open source under Apache-2.0.
         </p>
-      ) : (
+      ) : null
+    }
+
+    {
+      /*
+       * Said plainly, above the buttons rather than beneath them. A release
+       * candidate is a real thing people should be able to download, and
+       * offering one while implying it is finished is the part that would be
+       * dishonest.
+       */
+      release?.prerelease && (
+        <p class="head__rc">
+          This is a <strong>release candidate</strong>. It is signed, notarized
+          on macOS, and has been run on every platform it ships for — but it has
+          had far less use than a finished release. Report anything you hit on{" "}
+          <a
+            href="https://github.com/adamgreenwell/flume/issues"
+            rel="noopener"
+          >
+            GitHub
+          </a>
+          .
+        </p>
+      )
+    }
+
+    {
+      !release && (
         <p class="lead head__lead">
           Installers are not published yet — 1.0 is close. In the meantime Flume
           builds from source in a few commands, on all three platforms.
@@ -222,6 +249,27 @@ const published = release
   .head__lead {
     margin-top: 1rem;
     max-width: 60ch;
+  }
+
+  /*
+   * Warn-toned rather than error-toned. A release candidate is something to
+   * be aware of, not something wrong — red would overstate it and train
+   * people to ignore the colour when it does mean a problem.
+   */
+  .head__rc {
+    margin-top: 1.25rem;
+    max-width: 60ch;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--warn) 35%, transparent);
+    border-radius: var(--r-lg);
+    background: color-mix(in oklab, var(--warn) 8%, transparent);
+    color: var(--fg-1);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  .head__rc strong {
+    color: var(--fg-0);
   }
 
   .head__lead strong {

@@ -1,0 +1,60 @@
+name: Something is wrong with the site
+description: A page is broken, unreadable, inaccessible, or out of date.
+labels: ["type: bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This repository is the website only. For bugs in the Flume application, use the
+        [app repository](https://github.com/adamgreenwell/flume/issues/new/choose) instead.
+
+  - type: input
+    id: page
+    attributes:
+      label: Which page?
+      placeholder: https://flume.adamgreenwell.com/download/
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What is wrong?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of problem is it?
+      options:
+        - Layout or styling
+        - Wrong or outdated information
+        - Broken link or download
+        - Accessibility — keyboard, contrast, screen reader
+        - Performance
+        - Something else
+    validations:
+      required: true
+
+  - type: dropdown
+    id: theme
+    attributes:
+      label: Which theme?
+      description: Both themes are hand-stepped, so a problem is often specific to one.
+      options:
+        - Dark
+        - Light
+        - Both
+        - Not relevant
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Firefox 142 on Windows 11 / Safari on iPhone 15
+    validations:
+      required: false

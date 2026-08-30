@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: A bug in the Flume application
+    url: https://github.com/adamgreenwell/flume/issues/new/choose
+    about: This repository is only the website. Anything about the app itself belongs in the app repo.
+  - name: Documentation wording
+    url: https://github.com/adamgreenwell/flume/tree/main/docs
+    about: The docs are generated from the app repo. Fix them at the source and both this site and the wiki follow.

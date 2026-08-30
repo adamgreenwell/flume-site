@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      # Astro and its first-party integrations are released together. A split
+      # upgrade tends to fail on a peer range rather than at runtime, which is
+      # a worse way to find out.
+      astro:
+        patterns: ["astro", "@astrojs/*"]
+      dev-tooling:
+        patterns: ["prettier*", "typescript"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci(deps)"

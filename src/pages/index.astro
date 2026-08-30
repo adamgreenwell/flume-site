@@ -75,7 +75,7 @@ const craft = [
   },
   {
     title: "No crypto, no ads, no paid tier",
-    body: "Apache-2.0, and deliberately without RSS automation, chat, a bundled toolbar, or a Pro upsell. It is a torrent client for downloading ISOs, and that is the whole product.",
+    body: "Apache-2.0, and deliberately without RSS automation, chat, a bundled toolbar, or a Pro upsell. There is no account to make and nothing reporting back. It is a torrent client, and that is the whole product.",
   },
 ];
 ---
@@ -424,10 +424,28 @@ const craft = [
   </section>
 
   <section class="wrap cta">
-    <h2 class="cta__title">Built for downloading Linux ISOs.</h2>
+    {
+      /*
+       * No use case is named here, and that is deliberate.
+       *
+       * This previously read "Built for downloading Linux ISOs" — the standard
+       * wink, and not true. A general-purpose BitTorrent client is
+       * general-purpose, and a site that asks to be believed about swarm
+       * verdicts and measured bottlenecks cannot open by describing a purpose
+       * nobody has. Nodding the other way would be worse: what creates
+       * liability for a tool like this is inducement, marketing it with the
+       * stated object of promoting infringement.
+       *
+       * So it says what the client is and what it does not do to you, and
+       * leaves what people download with it to them. Every claim below is
+       * checkable: no analytics SDK, no updater, no account in the IPC
+       * contract.
+       */
+    }
+    <h2 class="cta__title">No account, no ads, no upsell.</h2>
     <p class="lead cta__lead">
-      Ubuntu, Debian, Fedora, Rocky, AlmaLinux — and seeding them back, which
-      distro mirrors genuinely need.
+      Free and Apache-2.0, on macOS, Windows and Linux. Flume talks to trackers,
+      peers and the DHT. It does not talk to us.
     </p>
     <div class="hero__cta cta__buttons">
       <a

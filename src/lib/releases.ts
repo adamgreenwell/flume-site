@@ -62,6 +62,16 @@ export interface Release {
   prerelease: boolean;
   /** Every recognised installer, in display order. */
   assets: Asset[];
+  /**
+   * URL of the release's `SHA256SUMS` file, or `null` when it has none.
+   *
+   * Worth surfacing rather than filtering away with the other non-installers.
+   * Windows builds carry no signature at all, so checking a hash is the only
+   * verification available to someone who wants one — and a link they cannot
+   * find is the same as no link. Older releases have one and `v1.0.0-rc.1`
+   * does not, which is exactly why this is optional rather than assumed.
+   */
+  checksums: string | null;
 }
 
 /** Shape of the bits of GitHub's release payload this module reads. */
@@ -229,6 +239,9 @@ function toRelease(gh: GhRelease): Release {
       )
       .filter((a): a is Asset => a !== null)
       .sort(order),
+    checksums:
+      gh.assets.find((a) => /^SHA256SUMS/i.test(a.name))
+        ?.browser_download_url ?? null,
   };
 }
 
@@ -246,32 +259,40 @@ function toRelease(gh: GhRelease): Release {
 function fixture(): GhRelease {
   const asset = (name: string, size: number) => ({
     name,
-    browser_download_url: `https://github.com/${REPO}/releases/download/v1.0.0/${name}`,
+    browser_download_url: `https://github.com/${REPO}/releases/download/v1.0.0-rc.1/${name}`,
     size,
     download_count: 0,
   });
 
   return {
-    tag_name: "v1.0.0",
+    tag_name: "v1.0.0-rc.1",
     name: "Flume 1.0.0",
     published_at: new Date().toISOString(),
     body: "## Fixture\n\nSet `FLUME_FAKE_RELEASE=1` to render this.",
-    html_url: `https://github.com/${REPO}/releases/tag/v1.0.0`,
+    html_url: `https://github.com/${REPO}/releases/tag/v1.0.0-rc.1`,
     draft: false,
-    prerelease: false,
+    prerelease: true,
+    // Copied from the real v1.0.0-rc.1, byte sizes included — including what
+    // it is missing. Both .rpm jobs failed on that run and no SHA256SUMS was
+    // produced, so this fixture has neither.
+    //
+    // That is deliberate, and it is the reason the fixture is worth having.
+    // The unauthenticated CI job hits the live API, which currently answers
+    // with v0.1.0-rc.4 and does carry rpms and a checksums file, so that job
+    // already exercises the complete path. This one exercises the degraded
+    // one: a release missing a platform's package, with nothing to verify
+    // against. Those branches are the ones that would otherwise ship untested
+    // and promise a Fedora package that is not there.
     assets: [
-      asset("Flume_1.0.0_universal.dmg", 17_400_000),
-      asset("Flume_1.0.0_x64-setup.exe", 9_100_000),
-      asset("Flume_1.0.0_x64_en-US.msi", 9_600_000),
-      asset("Flume_1.0.0_arm64-setup.exe", 8_800_000),
-      asset("Flume_1.0.0_arm64_en-US.msi", 9_300_000),
-      asset("Flume_1.0.0_amd64.deb", 8_700_000),
-      asset("Flume_1.0.0_arm64.deb", 8_400_000),
-      asset("Flume-1.0.0-1.x86_64.rpm", 8_900_000),
-      asset("Flume-1.0.0-1.aarch64.rpm", 8_600_000),
-      asset("Flume_1.0.0_amd64.AppImage", 92_000_000),
-      // Not an installer. Must be filtered out rather than listed.
-      asset("Flume_1.0.0_universal.dmg.sig", 566),
+      asset("Flume_1.0.0_universal.dmg", 17_943_870),
+      asset("Flume_1.0.0_x64-setup.exe", 5_760_403),
+      asset("Flume_1.0.0_x64_en-US.msi", 8_126_464),
+      asset("Flume_1.0.0_arm64-setup.exe", 5_232_610),
+      asset("Flume_1.0.0_arm64_en-US.msi", 7_786_496),
+      asset("Flume_1.0.0_amd64.deb", 11_043_366),
+      asset("Flume_1.0.0_arm64.deb", 11_467_648),
+      asset("Flume_1.0.0_amd64.AppImage", 87_792_120),
+      asset("Flume_1.0.0_aarch64.AppImage", 86_366_728),
     ],
   };
 }

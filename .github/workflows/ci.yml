@@ -90,3 +90,28 @@ jobs:
             echo "::error::a .sig asset leaked onto the download page"; exit 1
           fi
           echo "All three platform sections rendered, no non-installer assets."
+
+      # This ran only on the unauthenticated build before, which rendered no
+      # release at all while the repo was private — so the markup that carries
+      # a version, and the glued text it can produce, was never inspected.
+      - name: Check for words glued together by markup
+        run: npm run check:spacing
+
+      - name: Confirm the degraded release paths render honestly
+        env:
+          FLUME_FAKE_RELEASE: "1"
+        run: |
+          set -euo pipefail
+          # The fixture mirrors v1.0.0-rc.1: a pre-release with no .rpm and no
+          # checksums file. Each of these is a claim the page must not make.
+          grep -q "release candidate" dist/download/index.html \
+            || { echo "::error::pre-release notice missing"; exit 1; }
+          grep -q "has no" dist/download/index.html \
+            || { echo "::error::page does not say the .rpm is absent"; exit 1; }
+          if grep -q "dependency metadata is the real thing" dist/download/index.html; then
+            echo "::error::page promises an .rpm this release does not contain"; exit 1
+          fi
+          if grep -q "SHA256SUMS" dist/download/index.html; then
+            echo "::error::page links checksums this release does not have"; exit 1
+          fi
+          echo "Pre-release notice shown; no .rpm or checksums promised."

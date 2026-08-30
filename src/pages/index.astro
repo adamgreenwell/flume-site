@@ -106,11 +106,14 @@ const craft = [
           release ? (
             <>
               <a class="btn btn--primary" href="/download/">
-                Download Flume
-                <span class="btn__ver">
-                  {release.version}
-                  {release.prerelease ? " RC" : ""}
-                </span>
+                Download Flume{" "}
+                {/*
+                 * Just the version. It already reads `1.0.0-rc.1`, so
+                 * appending "RC" rendered "1.0.0-rc.1 RC" — the same fact
+                 * twice, in the smallest text on the page. What a release
+                 * candidate *means* is a sentence, and it goes below.
+                 */}
+                <span class="btn__ver">{release.version}</span>
               </a>
               <a class="btn btn--ghost" href="/docs/getting-started/">
                 Getting started
@@ -139,6 +142,15 @@ const craft = [
             Installers are not published yet — 1.0 is close. Until then the
             <a href="/docs/development-setup/"> development setup</a> builds it
             in a few commands.
+          </p>
+        )
+      }
+
+      {
+        release?.prerelease && (
+          <p class="hero__note">
+            This is a release candidate — a real build, with less use behind it
+            than a finished release. <a href="/download/">What that means</a>.
           </p>
         )
       }

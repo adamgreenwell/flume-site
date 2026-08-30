@@ -107,37 +107,47 @@ consume build minutes and bandwidth.
 Release data is resolved at build time, so publishing a GitHub release does
 **not** update the download page by itself. The site has to rebuild.
 
-1. In Sevalla, open the site → **Settings → Deploy hooks**, and create one.
-   Copy the URL.
-2. In the **app** repo (`adamgreenwell/flume`), add it as a repository secret
-   named `SEVALLA_DEPLOY_HOOK`.
-3. Add this job to `.github/workflows/release.yml`:
+Auto-deploy covers pushes to `flume-site`, but a release happens in the _app_
+repo, which pushes nothing here — so that case needs something explicit.
 
-```yaml
-# Release data is baked into the site at build time, so a published release
-# is invisible until the site rebuilds. Fires once, after every platform has
-# attached its artifacts.
-#
-# `if` guards a fork or a repo without the secret configured: an unset secret
-# would otherwise POST to an empty URL and fail the workflow over something
-# that is not the release's problem.
-refresh-site:
-  name: Rebuild flume.adamgreenwell.com
-  runs-on: ubuntu-latest
-  needs: [build, rpm]
-  if: ${{ !cancelled() && vars.SEVALLA_DEPLOY_HOOK_CONFIGURED == 'true' }}
-  steps:
-    - name: Trigger Sevalla deploy
-      run: curl -fsS -X POST "${{ secrets.SEVALLA_DEPLOY_HOOK }}"
-```
+**Sevalla static sites have no "deploy hook" URL.** The Settings page offers
+Source, Auto-deploy, Git LFS, Deploy paths, PR previews, Build strategy and
+Pretty URLs, and nothing else; the earlier version of this document described a
+Deploy hooks section that does not exist. `release.yml` in the app repo still
+has a step that POSTs to `SEVALLA_DEPLOY_HOOK`. That secret is unset, so the
+step prints "No SEVALLA_DEPLOY_HOOK configured; skipping site rebuild" and
+exits zero — harmless, but it is wired to a mechanism this platform does not
+provide.
 
-Set the repository **variable** `SEVALLA_DEPLOY_HOOK_CONFIGURED` to `true`
-alongside the secret. A secret cannot be tested for existence in an `if`, so
-the variable is what makes the guard possible.
+Three real options, in order of how much they cost to set up:
 
-`needs: [build, rpm]` with `!cancelled()` means the rebuild runs even if one
-platform's build failed — a release with four of five installers still wants
-its download page refreshed.
+1. **Do nothing.** The next push to `flume-site` rebuilds and picks the release
+   up. In practice the site is usually touched around a release anyway. The
+   download page is stale until then.
+2. **The official GitHub Action**, [`sevalla-hosting/sevalla-deploy`][action].
+   Needs a Sevalla API token as a repo secret, plus the static site's ID —
+   which is on the Settings page under Details: `6cade71a-c6ce-4f69-8ef3-e082a74e2039`.
+   Replace the `SEVALLA_DEPLOY_HOOK` step with it.
+3. **An empty commit** pushed to `flume-site` from `release.yml`, which trips
+   auto-deploy. No API token, but it needs write access to this repo from the
+   app repo's workflow and it puts noise in the history.
+
+Option 2 is the right one if this matters; option 1 is what is in force today.
+
+[action]: https://github.com/sevalla-hosting/sevalla-deploy
+
+## Settings worth knowing
+
+**Pretty URLs is disabled, and that is fine.** Astro is configured with
+`build.format: "directory"`, so every page is emitted as `index.html` inside its
+own folder. Both `/download` and `/download/` return 200 as it stands, so the
+redirect Pretty URLs would add is not needed.
+
+**Error file is deliberately blank.** Pointing it at `index.html` is the SPA
+setting, and on a multi-page site it would serve the home page under every
+wrong URL with a 200 — telling search engines each of them is a real page.
+Blank means `/no-such-page` returns a real 404. There is no custom 404 page in
+the site yet; adding `src/pages/404.astro` would give one.
 
 ## Note on the private repository
 

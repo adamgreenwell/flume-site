@@ -83,7 +83,7 @@ const craft = [
 <Base
   title="Flume — a modern BitTorrent client"
   bareTitle
-  description="Flume is an open-source BitTorrent client for macOS, Windows and Linux. Everything the established clients do, rebuilt around a modern interface — and it tells you whether a download will actually finish."
+  description="Flume is a modern, open-source BitTorrent client for macOS, Windows and Linux. A Rust engine in a native window rather than a bundled browser — the Windows installer is under 6 MB."
 >
   <section class="hero">
     <div class="wrap hero__inner">
@@ -91,14 +91,25 @@ const craft = [
         Apache-2.0 · macOS, Windows &amp; Linux · Rust and Tauri
       </p>
 
-      <h1 class="hero__title">Know whether it will finish.</h1>
+      <h1 class="hero__title">
+        A modern torrent client that weighs almost nothing.
+      </h1>
 
+      {
+        /*
+         * Every figure here is checked against the shipped 1.0.0 assets. The
+         * Windows installers are 5.88 MB and 5.35 MB, so "under 6 MB" holds for
+         * both; the macOS bundle measures 23 MB installed. Deliberately not
+         * "always tiny" — the AppImage is 87 MB because it carries its own
+         * GTK/WebKit runtime, and the download page two scrolls down would
+         * contradict the claim.
+         */
+      }
       <p class="lead hero__lead">
-        A BitTorrent client with everything the old reliables do — and an
-        interface built this decade. Flume reads what every connected peer
-        actually holds, and answers the question underneath the progress bar: is
-        every piece you still need out there, and what is holding the transfer
-        back?
+        Everything the established clients do, in an interface built this
+        decade. A Rust engine in a native window rather than a bundled browser:
+        the Windows installer is under 6 MB, the macOS app is 23 MB on disk, and
+        it is the same client on all three.
       </p>
 
       <div class="hero__cta">
@@ -519,7 +530,10 @@ const craft = [
   .hero__title {
     font-size: var(--t-hero);
     letter-spacing: -0.035em;
-    max-width: 16ch;
+    /* 23ch, not the 16ch the old four-word headline wanted. This line is 50
+       characters and at 16ch it broke over three, which pushed the window
+       replica below the fold — and the replica is the argument. */
+    max-width: 23ch;
     margin-inline: auto;
   }
 

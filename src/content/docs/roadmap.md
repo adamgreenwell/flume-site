@@ -83,7 +83,7 @@ never with piece count or file size.
   for all platforms, but first-run behaviour needs a manual pass.
 - **Polling, not events.** The Phase 0 status hook polls at 1 Hz. Fine for one
   status card, wrong for a torrent list.
-- **No published builds.** Until Phase 3, build from source.
+
 - **Magnet association is untested on macOS and Windows.** The OS registration
   lives in the installed bundle, so it cannot be exercised by `tauri dev` —
   see [Platform Notes](/docs/platform-notes/). Blocked behind the release pipeline

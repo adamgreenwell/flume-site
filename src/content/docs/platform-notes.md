@@ -8,6 +8,23 @@ source: "docs/Platform-Notes.md"
 > [Smoke Test Checklist](/docs/smoke-test-checklist/) rather than clicking around — it is ordered so the
 > most likely failures surface first.
 
+## Icons
+
+`app-icon.png` in the repository root is the source of every app icon, and is
+the default `cargo tauri icon` looks for. Regenerate after changing it:
+
+```bash
+cargo tauri icon
+```
+
+That rewrites everything in `src-tauri/icons/`. It also emits `android/` and
+`ios/` sets, which Flume does not ship — delete them, or the tree grows 35
+files and 1.5 MB for platforms with no build.
+
+The source must have a real alpha channel. macOS and Linux draw the icon
+against whatever is behind it, so a baked-in background renders as a square
+tile rather than a shaped mark.
+
 ## Build matrix
 
 | Target                     | Runner                  | Output                |
@@ -31,8 +48,21 @@ removes the most common cross-distro breakage.
 
 **WebView:** WKWebView, bundled with the OS. No runtime to ship.
 
-**Unsigned builds** are blocked by Gatekeeper. Users can bypass via
-right-click → Open, or:
+**Released builds are signed and notarized.** The release workflow signs with a
+Developer ID certificate and submits to Apple's notary service; the rc.2 run
+logged `Notarizing Finished with status Accepted`. Gatekeeper does not warn.
+
+Signing is conditional on `secrets.APPLE_CERTIFICATE` being set — the workflow
+picks the signed or unsigned path from `HAS_APPLE_CERT`, so a fork with no
+certificate still builds rather than failing. Check which ran before claiming
+a build is signed: the job's step list says `Build and bundle (signed)` or
+`(unsigned)`, and one of them is always skipped.
+
+`scripts/setup-macos-signing.sh` sets the four sensitive secrets. It never
+echoes one and never takes one as an argument.
+
+**An unsigned build** — a local `tauri build`, or a fork's — is blocked by
+Gatekeeper. Bypass via right-click → Open, or:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/Flume.app
@@ -90,17 +120,25 @@ bundle size. Decision deferred.
 can bundle a bootstrapper for older systems.
 
 **SmartScreen** warns on unsigned executables until a download reputation
-builds. Code signing certificates cost real money annually; EV certificates
-clear SmartScreen immediately, OV ones build reputation over time.
+builds. Windows builds are **not** signed — unlike macOS, which is. Code
+signing certificates cost real money annually; EV certificates clear
+SmartScreen immediately, OV ones build reputation over time.
 
-**Known issue — file locking and seeding.** Windows lets a process hold an
-exclusive handle to a file, which can block seeding while another application
-has the file open. A community client ("Drift") patched librqbit's storage
-layer for this.
+**File locking and seeding — confirmed on v9, and fixed.** Windows refuses an
+open whose access conflicts with the sharing mode of an existing handle.
+`FilesystemStorage` opened every file read _and_ write when `allow_overwrite`
+is set, including a complete torrent that would only ever be served, so another
+application holding a download with `FILE_SHARE_READ` blocked the add outright.
 
-**Unverified on librqbit v9.** Tracked in
-[#9](https://github.com/adamgreenwell/flume/issues/9). Confirm reproduction
-before patching or vendoring.
+The patched librqbit Flume carries retries read-only on a sharing violation.
+Seeding only reads, so a completed torrent is served normally. Sent upstream as
+[`ikatson/rqbit#645`](https://github.com/ikatson/rqbit/pull/645); see
+[#9](https://github.com/adamgreenwell/flume/issues/9).
+
+A holder that permits **no** sharing at all (`share_mode(0)`) still cannot be
+read by anyone, which is Windows as documented rather than a defect.
+`src-tauri/tests/windows_file_locking.rs` covers both, and is the only place
+they run — the file is `#[cfg(windows)]`.
 
 ## Linux
 

@@ -33,6 +33,24 @@ const published = release
       year: "numeric",
     })
   : null;
+
+/** Whether this particular release actually carries a Fedora package. */
+const hasRpm = release?.assets.some((a) => a.format === "RPM") ?? false;
+
+/**
+ * The build-from-source steps, held as a string rather than written as markup.
+ *
+ * Inside a JSX expression Astro does not preserve the newlines in a `<pre>`,
+ * and Prettier reflows the block on top of that — this had already collapsed
+ * into `git clone … cd flume npm install npm run tauri:build`, four commands on
+ * one line, which is worse than useless to paste. A string survives both.
+ */
+const buildSteps = [
+  "git clone https://github.com/adamgreenwell/flume.git",
+  "cd flume",
+  "npm install",
+  "npm run tauri:build",
+].join("\n");
 ---
 
 <Base
@@ -58,7 +76,41 @@ const published = release
           Version <strong>{release.version}</strong>, released {published}. Free
           and open source under Apache-2.0.
         </p>
-      ) : (
+      ) : null
+    }
+
+    {
+      /*
+       * Said plainly, above the buttons rather than beneath them. A release
+       * candidate is a real thing people should be able to download, and
+       * offering one while implying it is finished is the part that would be
+       * dishonest.
+       */
+      release?.prerelease && (
+        <div class="head__rc">
+          <p>
+            This is a <strong>release candidate</strong>. It is a real build you
+            can install, but it has had far less use than a finished release.
+          </p>
+          <p>
+            The macOS build is signed and notarized. The Windows builds are not,
+            so SmartScreen will interrupt the installer. First-run behaviour on
+            Windows and Linux has not had a manual pass yet — that is precisely
+            what a release candidate is for, so please{" "}
+            <a
+              href="https://github.com/adamgreenwell/flume/issues"
+              rel="noopener"
+            >
+              report anything you hit
+            </a>
+            .
+          </p>
+        </div>
+      )
+    }
+
+    {
+      !release && (
         <p class="lead head__lead">
           Installers are not published yet — 1.0 is close. In the meantime Flume
           builds from source in a few commands, on all three platforms.
@@ -78,10 +130,7 @@ const published = release
             platform.
           </p>
           <pre class="code">
-            <code>
-              git clone https://github.com/adamgreenwell/flume.git cd flume npm
-              install npm run tauri:build
-            </code>
+            <code>{buildSteps}</code>
           </pre>
           <div class="empty__links">
             <a class="btn btn--primary" href="/docs/development-setup/">
@@ -152,15 +201,33 @@ const published = release
     <div class="note">
       <h2 class="note__title">Your OS may warn you</h2>
       <p>
-        Builds are unsigned unless signing credentials were configured for that
-        release. macOS will say the app is from an unidentified developer, and
-        Windows SmartScreen will interrupt the installer. Neither means the
-        download is damaged.
+        The macOS build is signed and notarized, so it opens without argument.
+        The Windows builds are not signed, so SmartScreen will interrupt the
+        installer with an "unrecognised app" panel — that is what an unsigned
+        installer looks like, not a sign the download is damaged.
       </p>
       <p>
         The signing and distribution page explains exactly what each system says
         and the least alarming way past it.
       </p>
+      {
+        /*
+         * Only rendered when the release actually has a checksums file. With
+         * the Windows installers unsigned, a hash is the only verification
+         * available to someone who wants one — but v1.0.0-rc.1 shipped without
+         * SHA256SUMS, and a link to a file that is not there is worse than no
+         * link, because it looks like verification is available when it is not.
+         */
+        release?.checksums && (
+          <p class="note__verify">
+            Want to check what you downloaded?{" "}
+            <a href={release.checksums} rel="noopener">
+              SHA256SUMS
+            </a>{" "}
+            lists a hash for every file in this release.
+          </p>
+        )
+      }
       <a class="note__link" href="/docs/signing-and-distribution/">
         Signing &amp; distribution →
       </a>
@@ -169,15 +236,35 @@ const published = release
     <div class="note">
       <h2 class="note__title">Which Linux package?</h2>
       <p>
-        Take the <span class="num">.deb</span> on Debian, Ubuntu and their derivatives,
-        and the <span class="num">.rpm</span> on Fedora, RHEL, Rocky and AlmaLinux.
-        The <span class="num">.rpm</span> is built in a Fedora container so its dependency
-        metadata is the real thing rather than Debian's translated.
+        Take the <span class="num">.deb</span> on Debian, Ubuntu and their derivatives.
+        The AppImage needs no install and runs anywhere — make it executable and launch
+        it.
       </p>
-      <p>
-        The AppImage needs no install and runs anywhere — make it executable and
-        launch it.
-      </p>
+      {
+        /*
+         * Whether to send Fedora and RHEL users to an .rpm is a question about
+         * this release, not about Linux. The rpm jobs build in a Fedora
+         * container and can fail independently of everything else — they did
+         * on v1.0.0-rc.1 — and a page that promises a package the release does
+         * not contain sends people looking for a download that is not there.
+         */
+        hasRpm ? (
+          <p>
+            On Fedora, RHEL, Rocky and AlmaLinux take the{" "}
+            <span class="num">.rpm</span>. It is built in a Fedora container, so
+            its dependency metadata is the real thing rather than Debian's
+            translated.
+          </p>
+        ) : (
+          <p>
+            <strong>
+              This release has no <span class="num">.rpm</span>
+            </strong>
+            , so on Fedora, RHEL, Rocky and AlmaLinux use the AppImage instead.
+            It runs the same binary without needing a package at all.
+          </p>
+        )
+      }
       <a class="note__link" href="/docs/getting-started/">Getting started →</a>
     </div>
   </section>
@@ -222,6 +309,31 @@ const published = release
   .head__lead {
     margin-top: 1rem;
     max-width: 60ch;
+  }
+
+  /*
+   * Warn-toned rather than error-toned. A release candidate is something to
+   * be aware of, not something wrong — red would overstate it and train
+   * people to ignore the colour when it does mean a problem.
+   */
+  .head__rc p + p {
+    margin-top: 0.6rem;
+  }
+
+  .head__rc {
+    margin-top: 1.25rem;
+    max-width: 60ch;
+    padding: 0.75rem 1rem;
+    border: 1px solid color-mix(in oklab, var(--warn) 35%, transparent);
+    border-radius: var(--r-lg);
+    background: color-mix(in oklab, var(--warn) 8%, transparent);
+    color: var(--fg-1);
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  .head__rc strong {
+    color: var(--fg-0);
   }
 
   .head__lead strong {
@@ -397,6 +509,18 @@ const published = release
     margin-top: 0.7rem;
     font-size: var(--t-small);
     color: var(--fg-2);
+  }
+
+  .note__verify {
+    margin-top: 0.7rem;
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .note__verify a {
+    color: var(--acc);
+    text-decoration: underline;
+    text-underline-offset: 2px;
   }
 
   .note__link {

@@ -4,15 +4,32 @@ import ThemeToggle from "./ThemeToggle.astro";
 
 const path = Astro.url.pathname;
 
+/**
+ * Docs is an outbound link now. The site stopped rendering its own copy of the
+ * documentation — the wiki is generated from `flume/docs/` on every push and
+ * is the single published version — so this points there rather than at a
+ * `/docs` route that only exists to redirect.
+ */
 const links = [
   { href: "/download/", label: "Download" },
-  { href: "/docs/", label: "Docs" },
+  {
+    href: "https://github.com/adamgreenwell/flume/wiki",
+    label: "Docs",
+    external: true,
+  },
   { href: "/changelog/", label: "Changelog" },
   { href: "/contribute/", label: "Contribute" },
+  {
+    href: "https://github.com/adamgreenwell/flume",
+    label: "GitHub",
+    external: true,
+    secondary: true,
+  },
 ];
 
 /** A link is current when the path is inside its section, not only equal. */
-const isCurrent = (href: string) => path === href || path.startsWith(href);
+const isCurrent = (href: string) =>
+  !href.startsWith("http") && (path === href || path.startsWith(href));
 ---
 
 <header class="header">
@@ -26,33 +43,29 @@ const isCurrent = (href: string) => path === href || path.startsWith(href);
         links.map((link) => (
           <a
             href={link.href}
-            class="header__link"
+            class:list={["header__link", link.secondary && "header__link--ext"]}
+            rel={link.external ? "noopener" : undefined}
             aria-current={isCurrent(link.href) ? "page" : undefined}
           >
             {link.label}
+            {link.external && (
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M6.5 3.5H12.5V9.5M12.5 3.5 4 12" />
+              </svg>
+            )}
           </a>
         ))
       }
-      <a
-        href="https://github.com/adamgreenwell/flume"
-        class="header__link header__link--ext"
-        rel="noopener"
-      >
-        GitHub
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.6"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
-        >
-          <path d="M6.5 3.5H12.5V9.5M12.5 3.5 4 12"></path>
-        </svg>
-      </a>
       <ThemeToggle />
     </nav>
   </div>
@@ -121,6 +134,8 @@ const isCurrent = (href: string) => path === href || path.startsWith(href);
    * to want, so they go rather than the header growing.
    */
   @media (max-width: 640px) {
+    /* Docs stays: it is a primary destination. `--ext` is only on GitHub,
+       which is the one an outbound visitor is least likely to want here. */
     .header__link--ext,
     .header__link[href="/changelog/"],
     .header__link[href="/contribute/"] {

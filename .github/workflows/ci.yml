@@ -46,7 +46,11 @@ jobs:
           set -euo pipefail
           test -f dist/index.html
           test -f dist/download/index.html
-          test -f dist/docs/index.html
+          # No dist/docs: the documentation is the wiki now, and /docs is a
+          # redirect. `_redirects` is asserted instead, because it lives in the
+          # repo root rather than the publish directory and would otherwise be
+          # easy to move by accident and never notice.
+          test -f _redirects
           test -f dist/sitemap-index.xml
           echo "Pages built: $(find dist -name '*.html' | wc -l | tr -d ' ')"
 

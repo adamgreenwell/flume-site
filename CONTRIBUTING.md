@@ -25,24 +25,23 @@ npm run check && npm run build
 
 ## Where content actually comes from
 
-Two things on this site are **generated**. Editing them here is wasted work.
+One thing on this site is **generated**, and one thing is not here at all.
 
-**The documentation** under `src/content/docs/` is copied from the app repo's
-`docs/` directory, which is also the source for the GitHub Wiki. Fix the wording
-there, then re-sync:
-
-```bash
-npm run sync:docs -- ../flume
-```
+**The documentation** is not in this repository. It lives in `docs/` in the app
+repo and is published to the [wiki](https://github.com/adamgreenwell/flume/wiki)
+automatically. Fix the wording there; `/docs` on this site only redirects.
 
 **Release data** — versions, filenames, sizes on the download and changelog
 pages — is fetched from the GitHub API during the build. There is nothing to
 edit; if it looks wrong, the release is wrong or the classifier in
 `src/lib/releases.ts` is.
 
-Because there is no tagged release yet, every build takes the "nothing
-published" path. To work on those pages, copy `.env.example` to `.env` — the
-fixture's filenames are exactly what the release workflow emits.
+`FLUME_FAKE_RELEASE=1` — copy `.env.example` to `.env` — renders a fixture
+instead of calling the API. It mirrors `v1.0.0-rc.1`, a pre-release whose
+`.rpm` jobs failed, so it carries neither an `.rpm` nor a `SHA256SUMS`. Those
+are the branches the live API no longer exercises now that `v1.0.0` is
+complete, and the ones that would otherwise promise a Fedora package the
+release does not contain.
 
 ## Design rules
 

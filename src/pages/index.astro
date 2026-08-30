@@ -126,7 +126,10 @@ const craft = [
                  */}
                 <span class="btn__ver">{release.version}</span>
               </a>
-              <a class="btn btn--ghost" href="/docs/getting-started/">
+              <a
+                class="btn btn--ghost"
+                href="https://github.com/adamgreenwell/flume/wiki/Getting-Started"
+              >
                 Getting started
               </a>
             </>
@@ -139,7 +142,10 @@ const craft = [
               >
                 Download from GitHub
               </a>
-              <a class="btn btn--ghost" href="/docs/getting-started/">
+              <a
+                class="btn btn--ghost"
+                href="https://github.com/adamgreenwell/flume/wiki/Getting-Started"
+              >
                 Getting started
               </a>
             </>
@@ -461,11 +467,16 @@ const craft = [
     <div class="hero__cta cta__buttons">
       <a
         class="btn btn--primary"
-        href={release ? "/download/" : "/docs/development-setup/"}
+        href={release
+          ? "/download/"
+          : "https://github.com/adamgreenwell/flume/wiki/Development-Setup"}
       >
         {release ? "Download Flume" : "Build from source"}
       </a>
-      <a class="btn btn--ghost" href="/docs/">Read the docs</a>
+      <a
+        class="btn btn--ghost"
+        href="https://github.com/adamgreenwell/flume/wiki">Read the docs</a
+      >
     </div>
   </section>
 </Base>

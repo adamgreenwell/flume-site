@@ -14,7 +14,6 @@
     "preview": "astro preview",
     "check": "astro check && prettier --check .",
     "format": "prettier --write .",
-    "sync:docs": "node scripts/sync-docs.mjs",
     "check:spacing": "node scripts/check-spacing.mjs"
   },
   "dependencies": {

@@ -1,0 +1,57 @@
+# Redirects for flume.adamgreenwell.com
+#
+# This file must sit in the REPOSITORY ROOT, not in `dist/`. Sevalla differs
+# from Netlify here, and it fails silently: a `_redirects` in the publish
+# directory is simply never read, so every rule below would appear to do
+# nothing while looking perfectly correct.
+#
+# Rules are matched top to bottom and the first hit wins, so the per-page
+# mappings have to precede the catch-all at the bottom.
+#
+# `301!` rather than `301`. The bang forces the redirect even when a file
+# exists at that path — without it a rule is skipped whenever the static build
+# has something to serve there, which is exactly the case being handled if a
+# stale `/docs/*` page is ever published again.
+#
+# Each page gets two rules: the bare path and the splat. Astro emits these
+# pages in directory format, so both `/docs/user-guide` and `/docs/user-guide/`
+# resolved before this change and both have to keep resolving now.
+
+# ── documentation now lives in the GitHub Wiki ──────────────────────────────
+#
+# The site used to render its own copy of `flume/docs/`, which meant the same
+# pages were published twice under different URLs. The wiki is the one that
+# stays: it is generated from `docs/` by `wiki-sync.yml` on every push, so it
+# cannot drift, and it does not need this site to be rebuilt to update.
+#
+# Mapped page for page rather than dumped at the wiki index. Someone arriving
+# from a search result for a specific page should land on that page, and a
+# mapped 301 passes the ranking those URLs already have.
+
+/docs/getting-started            https://github.com/adamgreenwell/flume/wiki/Getting-Started         301!
+/docs/getting-started/*          https://github.com/adamgreenwell/flume/wiki/Getting-Started         301!
+/docs/user-guide                 https://github.com/adamgreenwell/flume/wiki/User-Guide              301!
+/docs/user-guide/*               https://github.com/adamgreenwell/flume/wiki/User-Guide              301!
+/docs/architecture               https://github.com/adamgreenwell/flume/wiki/Architecture            301!
+/docs/architecture/*             https://github.com/adamgreenwell/flume/wiki/Architecture            301!
+/docs/torrent-engine-notes       https://github.com/adamgreenwell/flume/wiki/Torrent-Engine-Notes    301!
+/docs/torrent-engine-notes/*     https://github.com/adamgreenwell/flume/wiki/Torrent-Engine-Notes    301!
+/docs/design-system              https://github.com/adamgreenwell/flume/wiki/Design-System           301!
+/docs/design-system/*            https://github.com/adamgreenwell/flume/wiki/Design-System           301!
+/docs/development-setup          https://github.com/adamgreenwell/flume/wiki/Development-Setup       301!
+/docs/development-setup/*        https://github.com/adamgreenwell/flume/wiki/Development-Setup       301!
+/docs/ci-cd-and-releases         https://github.com/adamgreenwell/flume/wiki/CI-CD-and-Releases      301!
+/docs/ci-cd-and-releases/*       https://github.com/adamgreenwell/flume/wiki/CI-CD-and-Releases      301!
+/docs/signing-and-distribution   https://github.com/adamgreenwell/flume/wiki/Signing-and-Distribution 301!
+/docs/signing-and-distribution/* https://github.com/adamgreenwell/flume/wiki/Signing-and-Distribution 301!
+/docs/platform-notes             https://github.com/adamgreenwell/flume/wiki/Platform-Notes          301!
+/docs/platform-notes/*           https://github.com/adamgreenwell/flume/wiki/Platform-Notes          301!
+/docs/smoke-test-checklist       https://github.com/adamgreenwell/flume/wiki/Smoke-Test-Checklist    301!
+/docs/smoke-test-checklist/*     https://github.com/adamgreenwell/flume/wiki/Smoke-Test-Checklist    301!
+/docs/roadmap                    https://github.com/adamgreenwell/flume/wiki/Roadmap                 301!
+/docs/roadmap/*                  https://github.com/adamgreenwell/flume/wiki/Roadmap                 301!
+
+# Anything else under /docs, including the index and any page retired from the
+# wiki, lands on the wiki home rather than a 404.
+/docs                            https://github.com/adamgreenwell/flume/wiki                         301!
+/docs/*                          https://github.com/adamgreenwell/flume/wiki                         301!

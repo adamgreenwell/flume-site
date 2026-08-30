@@ -15,13 +15,12 @@ npm install
 npm run dev
 ```
 
-| Command             | What it does                                         |
-| ------------------- | ---------------------------------------------------- |
-| `npm run dev`       | Dev server on :4321                                  |
-| `npm run build`     | Static build to `dist/`                              |
-| `npm run preview`   | Serve the built output                               |
-| `npm run check`     | `astro check` plus a Prettier format check           |
-| `npm run sync:docs` | Copy the wiki source out of the app repo — see below |
+| Command           | What it does                               |
+| ----------------- | ------------------------------------------ |
+| `npm run dev`     | Dev server on :4321                        |
+| `npm run build`   | Static build to `dist/`                    |
+| `npm run preview` | Serve the built output                     |
+| `npm run check`   | `astro check` plus a Prettier format check |
 
 ## Where the content comes from
 
@@ -41,18 +40,16 @@ Sevalla deploy hook after a release is published; see `docs/deploy.md`.
 > that `v1.0.0` is complete, and they are the ones that would otherwise promise
 > a Fedora package that is not in the release. CI builds both ways.
 
-**Documentation** is copied from the app repo's `docs/` directory, which is
-also the source for the GitHub Wiki. It is not fetched at build time: the app
-repo is private, and giving this build a repo-scoped token just to read
-documentation is more credential than the convenience is worth. Re-sync after
-changing anything under `flume/docs/`:
+**Documentation** is not here. The site used to render its own copy of the app
+repo's `docs/`, which published the same pages twice under different URLs. The
+[wiki](https://github.com/adamgreenwell/flume/wiki) is the one that stays — it
+is generated from `docs/` by `wiki-sync.yml` on every push, so it cannot drift
+and does not need this site rebuilt to update.
 
-```bash
-npm run sync:docs -- ../flume
-```
-
-The copy under `src/content/docs/` is generated and committed. Reviewing its
-diff is how you see what changed in the docs.
+`/docs` and every path under it 301 to the matching wiki page. The rules are in
+`_redirects`, which **must stay in the repository root** — Sevalla reads it
+from there rather than from `dist/`, and a copy in the publish directory is
+silently ignored.
 
 ## Brand
 

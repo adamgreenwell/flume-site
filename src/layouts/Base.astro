@@ -95,6 +95,53 @@ const ogImage = new URL(image, Astro.site);
         }
       })();
     </script>
+
+    {
+      /*
+       * Google Analytics 4.
+       *
+       * `is:inline` on both: Astro would otherwise try to bundle them, and the
+       * gtag loader has to stay a plain async script pointing at Google's
+       * origin.
+       *
+       * Production only. Without the guard every `npm run dev` reload and every
+       * headless screenshot lands in the property, and localhost traffic is
+       * indistinguishable from real traffic once it is in there.
+       *
+       * Two tools on purpose. Umami is self-hosted and cookieless, so it works
+       * for the visitors who block Google — which, on a torrent client's site,
+       * is a meaningful share of them.
+       *
+       * Note both measure the *website*. The claims on the home page about
+       * nothing reporting back are about the app, which ships no analytics SDK,
+       * no updater and no account — verified against the tree before they were
+       * written. Worth keeping that distinction sharp if the copy ever moves.
+       */
+    }
+    {
+      import.meta.env.PROD && (
+        <>
+          <script
+            is:inline
+            async
+            src="https://www.googletagmanager.com/gtag/js?id=G-KNGWP21KK5"
+          />
+          <script is:inline>
+            {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-KNGWP21KK5');`}
+          </script>
+
+          <script
+            is:inline
+            defer
+            src="https://umami.faustdesignkompanie.com/script.js"
+            data-website-id="6487dfd4-01e1-4935-942d-80c5ac318d93"
+          />
+        </>
+      )
+    }
   </head>
 
   <body>

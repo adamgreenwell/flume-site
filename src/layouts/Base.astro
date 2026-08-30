@@ -22,6 +22,28 @@ const {
 } = Astro.props;
 
 const fullTitle = bareTitle ? title : `${title} — Flume`;
+
+/**
+ * The Google Analytics bootstrap, held as a string and injected with
+ * `set:html` into a childless <script>.
+ *
+ * This has now been wrong twice in two different ways, so the shape is
+ * deliberate. Written as `{\`…\`}` the braces and backticks were emitted into
+ * the page verbatim — an `is:inline` body is passed through untouched — and the
+ * browser got a block containing a discarded string: valid JavaScript that does
+ * nothing, while the tag sat in the HTML looking perfectly correct. Written as
+ * raw JS it worked, but Prettier reflowed it, and a formatter rewrapping live
+ * JavaScript is a bug waiting for the wrong line break.
+ *
+ * A string in the frontmatter is immune to both.
+ */
+const GA_ID = "G-KNGWP21KK5";
+const gaBootstrap = [
+  "window.dataLayer = window.dataLayer || [];",
+  "function gtag(){window.dataLayer.push(arguments);}",
+  "gtag('js', new Date());",
+  `gtag('config', '${GA_ID}');`,
+].join("\n");
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image, Astro.site);
 ---
@@ -124,14 +146,9 @@ const ogImage = new URL(image, Astro.site);
           <script
             is:inline
             async
-            src="https://www.googletagmanager.com/gtag/js?id=G-KNGWP21KK5"
+            src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
           />
-          <script is:inline>
-            {`window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', 'G-KNGWP21KK5');`}
-          </script>
+          <script is:inline set:html={gaBootstrap} />
 
           <script
             is:inline

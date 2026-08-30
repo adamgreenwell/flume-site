@@ -18,8 +18,17 @@ In the Sevalla dashboard, **Static Sites → Add site**, then:
 | Root directory               | _(blank)_                                            |
 
 Sevalla auto-detects Astro and proposes `npm run build` with `dist`, which is
-correct. **Check the Node version it selects.** Astro 7 refuses to run below
-22.12, and the failure is a build error rather than a warning.
+correct. Two things about that:
+
+**It fills the fields as you pick the repository, and typing appends rather
+than replaces.** Selecting the repo populated both Name and Publish directory,
+and typing into them produced `flume-siteflume-site` and `distdist`. Select all
+before typing, or just leave the detected values alone.
+
+**Check the Node version.** `lts` is the default and works — Astro 7 refuses to
+run below 22.12, and `lts` is comfortably above it. Do not pick the bare `22`
+option on the assumption it means the newest 22.x; `lts` is the safer choice
+and is what this site runs on.
 
 Leave the SPA **Index file** and **Error file** fields blank. This is a
 multi-page static site, not a single-page app — pointing every 404 at
@@ -29,42 +38,44 @@ engines it exists at all of them.
 ## Domain
 
 `flume.adamgreenwell.com` is a **subdomain**, so this is a `CNAME`, not an `A`
-record. Sevalla serves static sites from its own edge and the address behind it
-is not a fixed IP worth pinning; use whatever the site's **Domains** tab shows.
+record. There is no IP to point at: Sevalla serves static sites from its own
+edge behind a shared hostname.
 
-Sevalla asks for two things:
+Adding the domain in the site's **Domains** tab produces the records to create.
+For this site they were:
 
-1. A **verification** record, `_cf-custom-hostname.flume`, with the exact value
-   it displays.
-2. A **CNAME** for `flume` pointing at Sevalla's edge hostname.
+| Stage  | Type    | Name                    | Value                              |
+| ------ | ------- | ----------------------- | ---------------------------------- |
+| Verify | `CNAME` | `flume`                 | `fallback.kinsta.page`             |
+| Verify | `TXT`   | `_acme-challenge.flume` | a one-time token Sevalla generates |
+
+The `TXT` record does not appear until the `CNAME` exists — Sevalla reveals it
+on the next check — so this is two passes through the DNS editor, not one.
+A third stage, **Point domain**, stays greyed out until both verify.
+
+Take the token from the dashboard rather than retyping it. A trailing space or
+one wrong character fails the check and the error does not say which.
 
 ### The Cloudflare-specific part
 
-`adamgreenwell.com` is on Cloudflare, and that changes two steps.
-
-**Add the verification record as DNS only — the grey cloud, not the orange
+`adamgreenwell.com` is on Cloudflare, and Sevalla's own troubleshooting calls
+this out: **set both records to DNS only — the grey cloud, not the orange
 one.** A proxied record does not resolve publicly, so Sevalla's check cannot
-see it and verification never completes. This is the single most common way
-this goes wrong, and the symptom is a domain that sits on "pending" forever
-with nothing obviously misconfigured.
+see it and the domain sits pending with nothing visibly misconfigured. The
+`CNAME` defaults to Proxied in Cloudflare's dialog, so it has to be switched
+off deliberately.
 
-**Delete any stale `_cf-custom-hostname` or `_acme-challenge` records for this
-name first.** A leftover from an earlier attempt is matched instead of the
-current one and verification fails against a value that looks correct.
+Also delete any stale `_acme-challenge` records for this name before starting.
+A leftover from an earlier attempt is matched instead of the current token and
+verification fails against a value that looks right.
 
-Copy the values rather than retyping them. A trailing space or one missing
-character fails the check, and the error does not say which.
-
-Leave the `CNAME` itself on **DNS only** until the domain shows as active and
-the certificate has issued. You can turn the proxy on afterwards if you want
-Cloudflare's analytics or WAF in front — but note that Sevalla's edge is itself
-Cloudflare, so proxying puts one Cloudflare zone in front of another. It works,
-and it is a hop you do not need. Unless you want something specific from it,
-grey is the simpler answer.
+You can turn the proxy on after the domain is active. Note that Sevalla's edge
+is itself Cloudflare, so proxying puts one Cloudflare zone in front of another
+— it works, and it is a hop you do not need. Unless you want the WAF or
+analytics in front, leave it grey.
 
 Sevalla issues a free certificate per custom domain. Wait for it before
-announcing the URL; a visitor who arrives to a certificate warning does not come
-back to check whether you fixed it.
+announcing the URL.
 
 `astro.config.mjs` already has `site: "https://flume.adamgreenwell.com"`, which
 is what makes the sitemap and canonical URLs absolute. If the domain ever
@@ -74,12 +85,17 @@ changes, change it there too.
 
 ```bash
 dig +short flume.adamgreenwell.com CNAME
-dig +short _cf-custom-hostname.flume.adamgreenwell.com TXT
+dig +short _acme-challenge.flume.adamgreenwell.com TXT
 curl -sI https://flume.adamgreenwell.com | head -1
 ```
 
-The first two should return what Sevalla displayed. If `dig` returns nothing
-for a record you have definitely created, it is almost always the orange cloud.
+The first two should return exactly what Sevalla displayed. If `dig` returns
+nothing for a record you have definitely created, it is almost always the
+orange cloud.
+
+A `404` from the third with valid TLS is normal while verification is still
+pending: DNS and the certificate are working, and Kinsta's edge simply has no
+site attached to that hostname yet. It becomes a `200` when Sevalla finishes.
 
 ## Pull request previews
 

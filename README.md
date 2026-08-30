@@ -55,15 +55,28 @@ diff is how you see what changed in the docs.
 
 ## Brand
 
-`brand/` holds the mark. `mark.svg` is the logo (a channel that also reads as
-the product's initial), `app-icon.svg` and `app-icon.png` are the 1024px
-application icon on its tile.
+`brand/flume-logo.png` is the 1600px master. Everything in `public/` is derived
+from it, so regenerate rather than editing the copies:
+
+```bash
+sips -Z 128 brand/flume-logo.png --out public/logo.png
+sips -Z 32  brand/flume-logo.png --out public/favicon-32.png
+sips -Z 180 brand/flume-logo.png --out public/apple-touch-icon.png
+```
+
+The mark is a raster with gradients and bevels, so it is **not** recoloured per
+theme — it is used unmodified on both, having been checked against the dark and
+light grounds. `logo.png` is deliberately only 128px: the site never draws it
+larger than 34px, and that covers 4× density for 20 KB.
+
+`public/og.png` is a 1200×630 card built by hand; the source that generated it
+is not checked in, so redraw it if the headline changes.
 
 To replace the app's icon set — Flume still ships Tauri's default placeholder —
 run this from the app repo:
 
 ```bash
-npm run tauri icon ../flume-site/brand/app-icon.png
+npm run tauri icon ../flume-site/brand/flume-logo.png
 ```
 
 ## Design

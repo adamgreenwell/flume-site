@@ -35,7 +35,12 @@ const ogImage = new URL(image, Astro.site);
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
 
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!--
+      A PNG rather than an SVG favicon. The mark has gradients and bevelled
+      edges, so it is a raster asset; inlining it as a data URI in an SVG
+      wrapper would cost more than it is worth for a 32px slot.
+    -->
+    <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="sitemap" href="/sitemap-index.xml" />
 

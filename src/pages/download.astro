@@ -38,12 +38,21 @@ const published = release
 const hasRpm = release?.assets.some((a) => a.format === "RPM") ?? false;
 
 /**
- * The build-from-source steps, held as a string rather than written as markup.
+ * The build-from-source steps, rendered through `set:html` into a childless
+ * `<pre>`.
  *
- * Inside a JSX expression Astro does not preserve the newlines in a `<pre>`,
- * and Prettier reflows the block on top of that — this had already collapsed
- * into `git clone … cd flume npm install npm run tauri:build`, four commands on
- * one line, which is worse than useless to paste. A string survives both.
+ * This has now been got wrong twice, in two different ways, so it is worth
+ * saying why the shape is this odd. Written as ordinary markup the four
+ * commands first collapsed onto one line, because Astro does not preserve
+ * newlines in a `<pre>` inside a JSX expression. Moving the text into a string
+ * fixed that but not the rest: Prettier still reflowed `<code>` onto its own
+ * indented line, and inside a `<pre>` that indentation *is* content — the first
+ * command rendered twelve spaces further right than the other three.
+ *
+ * A `<pre>` with no children cannot be given whitespace to preserve. That is
+ * the whole trick. The commands are fixed, author-written text with no markup
+ * of their own, and they are escaped regardless rather than relying on that
+ * staying true.
  */
 const buildSteps = [
   "git clone https://github.com/adamgreenwell/flume.git",
@@ -51,6 +60,11 @@ const buildSteps = [
   "npm install",
   "npm run tauri:build",
 ].join("\n");
+
+const buildBlock = `<code>${buildSteps.replace(
+  /[&<>]/g,
+  (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]!,
+)}</code>`;
 ---
 
 <Base
@@ -112,8 +126,15 @@ const buildSteps = [
     {
       !release && (
         <p class="lead head__lead">
-          Installers are not published yet — 1.0 is close. In the meantime Flume
-          builds from source in a few commands, on all three platforms.
+          This page could not reach GitHub when it was last built, so it cannot
+          list the files. The{" "}
+          <a
+            href="https://github.com/adamgreenwell/flume/releases/latest"
+            rel="noopener"
+          >
+            latest release
+          </a>{" "}
+          on GitHub always has them.
         </p>
       )
     }
@@ -123,25 +144,23 @@ const buildSteps = [
     !release && (
       <section class="wrap">
         <div class="empty">
-          <h2 class="empty__title">Build from source</h2>
+          <h2 class="empty__title">Or build from source</h2>
           <p class="empty__body">
             You will need Rust 1.88 or later, Node 26, and your platform's Tauri
             system dependencies. The development setup page lists those per
             platform.
           </p>
-          <pre class="code">
-            <code>{buildSteps}</code>
-          </pre>
+          <pre class="code" set:html={buildBlock} />
           <div class="empty__links">
             <a class="btn btn--primary" href="/docs/development-setup/">
               Development setup
             </a>
             <a
               class="btn btn--ghost"
-              href="https://github.com/adamgreenwell/flume/releases"
+              href="https://github.com/adamgreenwell/flume/releases/latest"
               rel="noopener"
             >
-              Watch for releases
+              Latest release
             </a>
           </div>
         </div>

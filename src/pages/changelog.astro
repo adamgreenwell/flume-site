@@ -48,22 +48,22 @@ const rendered = await Promise.all(
     {
       rendered.length === 0 ? (
         <div class="empty">
-          <h2 class="empty__title">Nothing released yet</h2>
+          <h2 class="empty__title">Release notes are on GitHub</h2>
           <p class="empty__body">
-            Flume has not cut its first tagged release. The roadmap tracks what
-            is done and what is left before 1.0, and the repository's commit
-            history is public.
+            This page is built from the GitHub API, and the build could not
+            reach it — so it has no notes to show rather than none existing. The
+            releases page is the source either way.
           </p>
           <div class="empty__links">
-            <a class="btn btn--primary" href="/docs/roadmap/">
-              Read the roadmap
-            </a>
             <a
-              class="btn btn--ghost"
+              class="btn btn--primary"
               href="https://github.com/adamgreenwell/flume/releases"
               rel="noopener"
             >
-              Watch releases on GitHub
+              Releases on GitHub
+            </a>
+            <a class="btn btn--ghost" href="/docs/roadmap/">
+              Read the roadmap
             </a>
           </div>
         </div>

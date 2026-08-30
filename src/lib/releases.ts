@@ -272,17 +272,17 @@ function fixture(): GhRelease {
     html_url: `https://github.com/${REPO}/releases/tag/v1.0.0-rc.1`,
     draft: false,
     prerelease: true,
-    // Copied from the real v1.0.0-rc.1, byte sizes included — including what
-    // it is missing. Both .rpm jobs failed on that run and no SHA256SUMS was
-    // produced, so this fixture has neither.
+    // Modelled on the real v1.0.0-rc.1, byte sizes included — including what
+    // it was missing. Both .rpm jobs failed on that run and no SHA256SUMS was
+    // produced, so this fixture has neither. That release has since been
+    // deleted; the shape it captured is the point, not the tag.
     //
-    // That is deliberate, and it is the reason the fixture is worth having.
-    // The unauthenticated CI job hits the live API, which currently answers
-    // with v0.1.0-rc.4 and does carry rpms and a checksums file, so that job
-    // already exercises the complete path. This one exercises the degraded
-    // one: a release missing a platform's package, with nothing to verify
-    // against. Those branches are the ones that would otherwise ship untested
-    // and promise a Fedora package that is not there.
+    // The degradation is deliberate and is why the fixture is worth having.
+    // The unauthenticated CI job hits the live API, which answers with a
+    // complete release, so that job already covers the happy path. This one
+    // covers the other: a release missing a platform's package, with nothing
+    // to verify against. Those branches would otherwise ship untested and
+    // promise a Fedora package that is not there.
     assets: [
       asset("Flume_1.0.0_universal.dmg", 17_943_870),
       asset("Flume_1.0.0_x64-setup.exe", 5_760_403),

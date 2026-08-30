@@ -1,0 +1,31 @@
+{
+  "name": "flume-site",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Marketing and documentation site for Flume \u2014 a beautiful, cross-platform BitTorrent client.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "check": "astro check && prettier --check .",
+    "format": "prettier --write .",
+    "sync:docs": "node scripts/sync-docs.mjs"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^7.0.8",
+    "@astrojs/sitemap": "^3.7.3",
+    "astro": "^7.2.9",
+    "marked": "^18.0.11",
+    "prettier": "^3.9.6",
+    "prettier-plugin-astro": "^0.14.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^6.0.3"
+  }
+}

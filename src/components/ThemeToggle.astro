@@ -1,0 +1,139 @@
+---
+/**
+ * Light/dark toggle.
+ *
+ * Three states in the app — light, dark, system — but only two here. A site
+ * visitor is making a one-off "this is too bright" decision, and a third state
+ * they have to cycle through to get back to where they started is a worse
+ * trade than losing the ability to re-follow the OS. Clearing storage returns
+ * to system, which is the sensible default state anyway.
+ */
+---
+
+<button
+  type="button"
+  class="theme"
+  id="theme-toggle"
+  aria-label="Switch between light and dark"
+>
+  <svg
+    class="theme__icon theme__icon--sun"
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    aria-hidden="true"
+  >
+    <circle cx="8" cy="8" r="3.1"></circle>
+    <path
+      d="M8 1.4v1.7M8 12.9v1.7M2.4 8H.7M15.3 8h-1.7M4.05 4.05 2.85 2.85M13.15 13.15l-1.2-1.2M11.95 4.05l1.2-1.2M2.85 13.15l1.2-1.2"
+    ></path>
+  </svg>
+  <svg
+    class="theme__icon theme__icon--moon"
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M13.6 9.9A6.1 6.1 0 0 1 6.1 2.4a6.1 6.1 0 1 0 7.5 7.5Z"></path>
+  </svg>
+</button>
+
+<script>
+  const button = document.getElementById("theme-toggle");
+
+  /** The theme actually in force, whether chosen or inherited from the OS. */
+  function current(): "light" | "dark" {
+    const explicit = document.documentElement.getAttribute("data-theme");
+    if (explicit === "light" || explicit === "dark") return explicit;
+    return window.matchMedia("(prefers-color-scheme: light)").matches
+      ? "light"
+      : "dark";
+  }
+
+  button?.addEventListener("click", () => {
+    const next = current() === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try {
+      localStorage.setItem("flume-theme", next);
+    } catch {
+      // Storage unavailable. The choice still applies to this page view.
+    }
+  });
+</script>
+
+<style>
+  .theme {
+    display: grid;
+    place-items: center;
+    width: var(--h-control);
+    height: var(--h-control);
+    margin-left: 0.35rem;
+    padding: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: transparent;
+    color: var(--fg-2);
+    cursor: pointer;
+    transition:
+      color 0.14s ease,
+      border-color 0.14s ease;
+  }
+
+  .theme:hover {
+    color: var(--fg-0);
+    border-color: var(--line-2);
+  }
+
+  /* Both icons occupy the same cell; only the relevant one is painted. */
+  .theme__icon {
+    grid-area: 1 / 1;
+  }
+
+  .theme__icon--sun {
+    display: none;
+  }
+
+  :root[data-theme="dark"] .theme__icon--sun {
+    display: block;
+  }
+
+  :root[data-theme="dark"] .theme__icon--moon {
+    display: none;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .theme__icon--sun {
+      display: none;
+    }
+    :root:not([data-theme="dark"]) .theme__icon--moon {
+      display: block;
+    }
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme__icon--sun {
+      display: block;
+    }
+    :root:not([data-theme="light"]) .theme__icon--moon {
+      display: none;
+    }
+  }
+
+  :root[data-theme="light"] .theme__icon--sun {
+    display: none;
+  }
+
+  :root[data-theme="light"] .theme__icon--moon {
+    display: block;
+  }
+</style>

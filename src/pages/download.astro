@@ -1,0 +1,463 @@
+---
+import Base from "../layouts/Base.astro";
+import { latestRelease, formatBytes, type Os } from "../lib/releases";
+
+const release = await latestRelease();
+
+/** Display order and copy for each platform section. */
+const platforms: { os: Os; label: string; requires: string }[] = [
+  { os: "macos", label: "macOS", requires: "macOS 12 Monterey or later" },
+  { os: "windows", label: "Windows", requires: "Windows 10 or 11" },
+  {
+    os: "linux",
+    label: "Linux",
+    requires: "Debian 12+, Ubuntu 22.04+, Fedora 38+, RHEL 9.4+",
+  },
+];
+
+const archLabel = {
+  universal: "Universal",
+  x64: "Intel / x64",
+  arm64: "ARM64",
+};
+
+const groups = platforms.map((p) => ({
+  ...p,
+  assets: release?.assets.filter((a) => a.os === p.os) ?? [],
+}));
+
+const published = release
+  ? new Date(release.publishedAt).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+  : null;
+---
+
+<Base
+  title="Download"
+  description="Download Flume for macOS, Windows or Linux. Free and open source under Apache-2.0."
+>
+  <section class="wrap head">
+    <p class="eyebrow">Download</p>
+    <h1 class="head__title">Get Flume</h1>
+
+    {
+      release ? (
+        /*
+         * The version is set in the surrounding sans, not `.num`.
+         *
+         * The app's rule is that every number is mono with tabular figures,
+         * and the reason is columns: without it a rate column jitters on
+         * every tick. A version inside a sentence is in no column, and IBM
+         * Plex Mono's wide period turns "1.0.0" into "1 . 0 . 0" mid-prose.
+         * Mono stays where the rule earns its keep — the file sizes below.
+         */
+        <p class="lead head__lead">
+          Version <strong>{release.version}</strong>, released {published}. Free
+          and open source under Apache-2.0.
+        </p>
+      ) : (
+        <p class="lead head__lead">
+          Installers are not published yet — 1.0 is close. In the meantime Flume
+          builds from source in a few commands, on all three platforms.
+        </p>
+      )
+    }
+  </section>
+
+  {
+    !release && (
+      <section class="wrap">
+        <div class="empty">
+          <h2 class="empty__title">Build from source</h2>
+          <p class="empty__body">
+            You will need Rust 1.88 or later, Node 26, and your platform's Tauri
+            system dependencies. The development setup page lists those per
+            platform.
+          </p>
+          <pre class="code">
+            <code>
+              git clone https://github.com/adamgreenwell/flume.git cd flume npm
+              install npm run tauri:build
+            </code>
+          </pre>
+          <div class="empty__links">
+            <a class="btn btn--primary" href="/docs/development-setup/">
+              Development setup
+            </a>
+            <a
+              class="btn btn--ghost"
+              href="https://github.com/adamgreenwell/flume/releases"
+              rel="noopener"
+            >
+              Watch for releases
+            </a>
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    release && (
+      <section class="wrap">
+        <div class="platforms">
+          {groups.map((group) => (
+            <section
+              class="platform"
+              data-os={group.os}
+              aria-labelledby={`h-${group.os}`}
+            >
+              <div class="platform__head">
+                <h2 class="platform__title" id={`h-${group.os}`}>
+                  {group.label}
+                </h2>
+                <p class="platform__req">{group.requires}</p>
+              </div>
+
+              {group.assets.length ? (
+                <ul class="assets">
+                  {group.assets.map((asset, i) => (
+                    <li class:list={["asset", i === 0 && "is-primary"]}>
+                      <a class="asset__link" href={asset.url}>
+                        <span class="asset__main">
+                          <span class="asset__format">{asset.format}</span>
+                          <span class="asset__arch">
+                            {archLabel[asset.arch]}
+                          </span>
+                        </span>
+                        <span class="asset__blurb">{asset.blurb}</span>
+                        <span class="num asset__size">
+                          {formatBytes(asset.size)}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="assets__none">
+                  No build for this platform in {release.tag}.
+                </p>
+              )}
+            </section>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <section class="wrap notes">
+    <div class="note">
+      <h2 class="note__title">Your OS may warn you</h2>
+      <p>
+        Builds are unsigned unless signing credentials were configured for that
+        release. macOS will say the app is from an unidentified developer, and
+        Windows SmartScreen will interrupt the installer. Neither means the
+        download is damaged.
+      </p>
+      <p>
+        The signing and distribution page explains exactly what each system says
+        and the least alarming way past it.
+      </p>
+      <a class="note__link" href="/docs/signing-and-distribution/">
+        Signing &amp; distribution →
+      </a>
+    </div>
+
+    <div class="note">
+      <h2 class="note__title">Which Linux package?</h2>
+      <p>
+        Take the <span class="num">.deb</span> on Debian, Ubuntu and their derivatives,
+        and the <span class="num">.rpm</span> on Fedora, RHEL, Rocky and AlmaLinux.
+        The <span class="num">.rpm</span> is built in a Fedora container so its dependency
+        metadata is the real thing rather than Debian's translated.
+      </p>
+      <p>
+        The AppImage needs no install and runs anywhere — make it executable and
+        launch it.
+      </p>
+      <a class="note__link" href="/docs/getting-started/">Getting started →</a>
+    </div>
+  </section>
+
+  <!--
+    Promotes the card matching the visitor's platform, if `detect()` can
+    establish one. Everything above renders complete without this: the script
+    only reorders and labels, so a visitor with JavaScript off, or on a
+    platform detection cannot name, still sees every download.
+  -->
+  <script>
+    import { detect, osLabel } from "../lib/platform";
+
+    const guess = await detect();
+    if (guess.os) {
+      const target = document.querySelector(`[data-os="${guess.os}"]`);
+      const container = document.querySelector(".platforms");
+
+      if (target && container) {
+        target.classList.add("is-yours");
+        container.prepend(target);
+
+        const badge = document.createElement("p");
+        badge.className = "platform__yours";
+        badge.textContent = `Looks like you're on ${osLabel(guess.os)}`;
+        target.querySelector(".platform__head")?.prepend(badge);
+      }
+    }
+  </script>
+</Base>
+
+<style>
+  .head {
+    padding-top: clamp(2.5rem, 1rem + 5vw, 4.5rem);
+  }
+
+  .head__title {
+    margin-top: 0.75rem;
+    font-size: var(--t-display);
+  }
+
+  .head__lead {
+    margin-top: 1rem;
+    max-width: 60ch;
+  }
+
+  .head__lead strong {
+    color: var(--fg-0);
+    font-weight: 600;
+  }
+
+  /* ---- empty state ---- */
+  .empty {
+    margin-top: 2.5rem;
+    padding: clamp(1.5rem, 1rem + 2vw, 2.25rem);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .empty__title {
+    font-size: var(--t-title);
+  }
+
+  .empty__body {
+    margin-top: 0.75rem;
+    color: var(--fg-1);
+    max-width: 62ch;
+  }
+
+  .code {
+    margin: 1.25rem 0 0;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--bg-0);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    line-height: 1.7;
+    color: var(--fg-1);
+  }
+
+  .empty__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  /* ---- platforms ---- */
+  .platforms {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+
+  .platform {
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .platform.is-yours {
+    border-color: var(--acc-dim);
+    background: var(--bg-2);
+  }
+
+  .platform__head {
+    margin-bottom: 1.25rem;
+  }
+
+  .platform__yours {
+    margin-bottom: 0.4rem;
+    color: var(--acc);
+    font-size: var(--t-micro);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .platform__title {
+    font-size: var(--t-title);
+  }
+
+  .platform__req {
+    margin-top: 0.3rem;
+    color: var(--fg-2);
+    font-size: var(--t-small);
+  }
+
+  .assets {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .asset__link {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--bg-0);
+    text-decoration: none;
+    transition:
+      border-color 0.14s ease,
+      background-color 0.14s ease;
+  }
+
+  .asset__link:hover {
+    border-color: var(--line-2);
+    background: var(--bg-2);
+  }
+
+  .asset.is-primary .asset__link {
+    border-color: var(--acc-dim);
+  }
+
+  .asset__main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .asset__format {
+    font-size: var(--t-small);
+    font-weight: 600;
+  }
+
+  .asset__arch {
+    font-size: var(--t-micro);
+    color: var(--fg-2);
+  }
+
+  .asset__blurb {
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  .asset__size {
+    font-size: var(--t-micro);
+    color: var(--fg-3);
+    white-space: nowrap;
+  }
+
+  .assets__none {
+    color: var(--fg-3);
+    font-size: var(--t-small);
+  }
+
+  /* ---- notes ---- */
+  .notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+
+  .note {
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .note__title {
+    font-size: 1.02rem;
+  }
+
+  .note p {
+    margin-top: 0.7rem;
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  .note__link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--acc);
+    font-size: var(--t-small);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .note__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ---- buttons (shared with the home page) ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 44px;
+    padding-inline: 1.25rem;
+    border-radius: var(--r-md);
+    font-size: var(--t-small);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .btn--primary {
+    background: var(--acc);
+    color: var(--on-acc);
+  }
+
+  .btn--primary:hover {
+    background: var(--acc-hi);
+  }
+
+  .btn--ghost {
+    border: 1px solid var(--line-2);
+    color: var(--fg-0);
+  }
+
+  .btn--ghost:hover {
+    background: var(--bg-2);
+  }
+
+  @media (max-width: 760px) {
+    .notes {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* The blurb is the first thing that can go: format, architecture and size
+       are what someone actually picks on. */
+    .asset__link {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .asset__blurb {
+      display: none;
+    }
+  }
+</style>

@@ -1,0 +1,94 @@
+---
+import { getCollection } from "astro:content";
+
+interface Props {
+  /** Slug of the page being viewed, for the current marker. */
+  current?: string;
+}
+
+const { current } = Astro.props;
+
+const pages = await getCollection("docs");
+
+/**
+ * Group into sidebar sections.
+ *
+ * Section order falls out of the page order rather than being listed twice:
+ * `order` is a single running index across the whole nav, so a section sorts
+ * by its first page. Keeping one source for both avoids the failure where a
+ * page is moved and the section it now leads stays where it was.
+ */
+const sections = [...new Set(pages.map((p) => p.data.section))]
+  .map((name) => ({
+    name,
+    pages: pages
+      .filter((p) => p.data.section === name)
+      .sort((a, b) => a.data.order - b.data.order),
+  }))
+  .sort((a, b) => a.pages[0].data.order - b.pages[0].data.order);
+---
+
+<nav class="docsnav" aria-label="Documentation">
+  {
+    sections.map((section) => (
+      <div class="docsnav__group">
+        <h2 class="eyebrow docsnav__heading">{section.name}</h2>
+        <ul class="docsnav__list">
+          {section.pages.map((page) => (
+            <li>
+              <a
+                href={`/docs/${page.id}/`}
+                class="docsnav__link"
+                aria-current={page.id === current ? "page" : undefined}
+              >
+                {page.data.title}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ))
+  }
+</nav>
+
+<style>
+  .docsnav__group + .docsnav__group {
+    margin-top: 1.75rem;
+  }
+
+  .docsnav__heading {
+    margin-bottom: 0.6rem;
+  }
+
+  .docsnav__list {
+    display: grid;
+    gap: 0.1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .docsnav__link {
+    display: block;
+    padding: 0.35rem 0.6rem;
+    margin-left: -0.6rem;
+    border-radius: var(--r-md);
+    color: var(--fg-2);
+    font-size: var(--t-small);
+    text-decoration: none;
+    transition:
+      color 0.14s ease,
+      background-color 0.14s ease;
+  }
+
+  .docsnav__link:hover {
+    color: var(--fg-0);
+    background: var(--bg-2);
+  }
+
+  .docsnav__link[aria-current="page"] {
+    color: var(--acc);
+    background: var(--acc-deep);
+    font-weight: 600;
+  }
+</style>

@@ -1,0 +1,891 @@
+---
+import Base from "../layouts/Base.astro";
+import AppWindow from "../components/AppWindow.astro";
+import { latestRelease } from "../lib/releases";
+
+const release = await latestRelease();
+
+/**
+ * The three verdicts the health column can return.
+ *
+ * Wording is taken from the user guide verbatim. The site must not invent a
+ * second vocabulary for something the app already names.
+ */
+const verdicts = [
+  {
+    tone: "ok",
+    label: "Healthy",
+    body: "Every piece is held by several connected peers. This will finish.",
+  },
+  {
+    tone: "warn",
+    label: "Thin swarm",
+    body: "Every piece is held, but only just. Losing one peer could strand it.",
+  },
+  {
+    tone: "err",
+    label: "No seeds",
+    body: "No connected peer holds some piece. As it stands, this cannot finish.",
+  },
+];
+
+/**
+ * Capability parity with the established clients.
+ *
+ * Every line here is checked against the code, not the roadmap. Sequential
+ * download is absent on purpose — it is not implementable against librqbit v9,
+ * and listing it would be the exact kind of claim that costs a project trust
+ * the first time someone looks for the setting. Per-torrent rate limits are
+ * absent for the same reason: the docs mention them, the `Settings` type has
+ * only the global pair.
+ */
+const parity = [
+  "DHT, magnet links, and peer exchange",
+  "Torrent v2 and hybrid torrents",
+  "Selective file download before you start",
+  "Global download and upload limits",
+  "UPnP automatic port forwarding",
+  "SOCKS5 proxy for peer connections",
+  "Resume across restarts, without re-hashing",
+  "System tray, notifications, and a menu bar",
+  "Magnet protocol handler and drag-and-drop",
+  "Full keyboard control and screen-reader support",
+];
+
+const craft = [
+  {
+    title: "A native binary, not a browser",
+    body: "A Tauri shell around a Rust engine, drawing in the system WebView. The macOS build is one universal download of roughly 17 MB. There is no bundled Chromium, and no 400 MB install directory.",
+  },
+  {
+    title: "Torrent data never reaches the interface",
+    body: "librqbit writes pieces straight to disk; the UI only ever receives small JSON payloads at about 1 Hz. A bug in the frontend cannot corrupt a download, because the frontend never touches one.",
+  },
+  {
+    title: "Light and dark that were both designed",
+    body: "Not an inverted palette. Both themes are stepped independently in OKLCH, and every text-on-surface pairing is asserted against WCAG contrast in the test suite rather than eyeballed.",
+  },
+  {
+    title: "Numbers that hold still",
+    body: "Every figure is set in tabular monospace. Without it, columns jitter on every telemetry tick as digit widths change — which is why the window above does not move while its rates do.",
+  },
+  {
+    title: "It admits what it cannot measure",
+    body: "Connection slots, disk write queue and hash-checking load are shown as absent rather than estimated. The engine does not report them, and a plausible number would be worse than none.",
+  },
+  {
+    title: "No crypto, no ads, no paid tier",
+    body: "Apache-2.0, and deliberately without RSS automation, chat, a bundled toolbar, or a Pro upsell. It is a torrent client for downloading ISOs, and that is the whole product.",
+  },
+];
+---
+
+<Base
+  title="Flume — a modern BitTorrent client"
+  bareTitle
+  description="Flume is an open-source BitTorrent client for macOS, Windows and Linux. Everything the established clients do, rebuilt around a modern interface — and it tells you whether a download will actually finish."
+>
+  <section class="hero">
+    <div class="wrap hero__inner">
+      <p class="eyebrow hero__eyebrow">
+        Apache-2.0 · macOS, Windows &amp; Linux · Rust and Tauri
+      </p>
+
+      <h1 class="hero__title">Know whether it will finish.</h1>
+
+      <p class="lead hero__lead">
+        A BitTorrent client with everything the old reliables do — and an
+        interface built this decade. Flume reads what every connected peer
+        actually holds, and answers the question underneath the progress bar: is
+        every piece you still need out there, and what is holding the transfer
+        back?
+      </p>
+
+      <div class="hero__cta">
+        {
+          release ? (
+            <>
+              <a class="btn btn--primary" href="/download/">
+                Download Flume
+                <span class="btn__ver">{release.version}</span>
+              </a>
+              <a class="btn btn--ghost" href="/docs/getting-started/">
+                Getting started
+              </a>
+            </>
+          ) : (
+            <>
+              <a class="btn btn--primary" href="/docs/development-setup/">
+                Build from source
+              </a>
+              <a
+                class="btn btn--ghost"
+                href="https://github.com/adamgreenwell/flume"
+                rel="noopener"
+              >
+                View on GitHub
+              </a>
+            </>
+          )
+        }
+      </div>
+
+      {
+        !release && (
+          <p class="hero__note">
+            Installers are not published yet — 1.0 is close. Until then the
+            <a href="/docs/development-setup/"> development setup</a> builds it
+            in a few commands.
+          </p>
+        )
+      }
+    </div>
+
+    <div class="wrap hero__shot">
+      <AppWindow />
+      <p class="hero__caption">
+        Live, at the rate the app itself updates. Not a screenshot.
+      </p>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <p class="eyebrow">Why another client</p>
+      <h2 class="band__title">
+        The protocol was solved twenty years ago. The experience wasn't.
+      </h2>
+
+      <div class="band__cols">
+        <p>
+          The clients most people run were written when BitTorrent was new, and
+          it shows — in interfaces that predate the retina display, in settings
+          panels with eleven tabs, and in defaults that assume you already know
+          what a bitfield is. They are dependable, and they earned that
+          reputation honestly.
+        </p>
+        <p>
+          Flume's bet is that the engine is the solved part. librqbit already
+          handles DHT, the peer protocol and piece management well, so all of
+          the effort goes into the part nobody finished: making the thing
+          legible while it runs.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <p class="eyebrow">The part that is new</p>
+    <h2 class="section__title">
+      A progress bar tells you where you are. It does not tell you whether you
+      will arrive.
+    </h2>
+
+    <div class="band__cols section__cols">
+      <p>
+        Forty peers who all stopped at the same 6% will never finish your
+        download. Six peers who between them hold every piece will. A peer count
+        cannot tell those apart, and neither can an ETA extrapolated from the
+        last thirty seconds.
+      </p>
+      <p>
+        Flume asks each connected peer for its bitfield and works out the
+        <em>rarest</em> piece in the swarm — the minimum, not the average. Two peers
+        holding 500 pieces each might overlap completely or not at all. Only one of
+        those torrents can finish.
+      </p>
+    </div>
+
+    <ul class="verdicts">
+      {
+        verdicts.map((v) => (
+          <li class:list={["verdict", `is-${v.tone}`]}>
+            <span class="verdict__head">
+              <span class="verdict__dot" aria-hidden="true" />
+              {v.label}
+            </span>
+            <p class="verdict__body">{v.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="section__caveat">
+      And when there is nothing to judge from — peers connected, but no
+      bitfields received yet — it says <strong>Connected</strong> rather than picking
+      a verdict. A confident wrong answer is worse than an honest blank.
+    </p>
+  </section>
+
+  <section class="wrap split">
+    <div class="split__text">
+      <p class="eyebrow">The piece map</p>
+      <h2 class="split__title">Progress hides shape.</h2>
+      <p>
+        Sixty percent with a solid head and an empty tail is downloading in
+        order. Sixty percent scattered evenly is pulling rarest-first. The upper
+        strip shows which is happening.
+      </p>
+      <p>
+        The lower strip is the one that warns you. It counts how many connected
+        peers hold each region, and a tail that thins toward the right is a
+        torrent heading for a stall. A region <em>no</em> peer holds is drawn full
+        height in red — taller than anything else on the strip, so a glance cannot
+        miss it.
+      </p>
+      <p class="split__note">
+        It does not count you, because the question it answers is whether the
+        swarm can finish <em>your</em> download. Once a torrent completes the strip
+        disappears: the question has been answered.
+      </p>
+    </div>
+
+    <div class="split__figure">
+      <div class="panel">
+        <p class="eyebrow">What is limiting this download</p>
+        <ul class="limits">
+          <li class="limit">
+            <span class="limit__row">
+              <span class="limit__name">Your download cap</span>
+              <span class="num limit__val">6.6 / 6.6 MB/s</span>
+            </span>
+            <span class="limit__track"
+              ><span class="limit__fill is-binding" style="width:100%"
+              ></span></span
+            >
+            <span class="limit__tag"
+              >Binding — raising it in Settings will help</span
+            >
+          </li>
+          <li class="limit">
+            <span class="limit__row">
+              <span class="limit__name">Peer upload</span>
+              <span class="num limit__val">11.2 MB/s</span>
+            </span>
+            <span class="limit__track"
+              ><span class="limit__fill" style="width:58%"></span></span
+            >
+          </li>
+          <li class="limit">
+            <span class="limit__row">
+              <span class="limit__name">Piece availability</span>
+              <span class="num limit__val">1 copy min</span>
+            </span>
+            <span class="limit__track"
+              ><span class="limit__fill" style="width:34%"></span></span
+            >
+          </li>
+          <li class="limit is-absent">
+            <span class="limit__row">
+              <span class="limit__name">Disk write queue</span>
+              <span class="limit__val">Not measured</span>
+            </span>
+          </li>
+        </ul>
+        <p class="panel__foot">
+          At most one constraint is marked as binding, with a sentence saying
+          whether changing a setting would help. If nothing is binding, nothing
+          is marked.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap migrate">
+      <div class="migrate__text">
+        <p class="eyebrow">Switching</p>
+        <h2 class="section__title migrate__title">
+          Bring your library with you.
+        </h2>
+        <p>
+          On first run Flume looks for Transmission, qBittorrent and Deluge on
+          your machine and offers to take their torrents over — including where
+          each one was saving to.
+        </p>
+        <p>
+          Nothing is downloaded twice. The engine is handed the original save
+          path, hashes what is already on disk, and keeps every piece that
+          verifies. A library that took a week to build transfers in the time it
+          takes to check it.
+        </p>
+        <p class="split__note">
+          It does not pretend to bring across what it cannot. Categories and
+          seeding rules are left behind rather than silently dropped, because
+          Flume has nowhere to put them.
+        </p>
+      </div>
+
+      <ul class="found">
+        <li class="found__item">
+          <span class="found__name">Transmission</span>
+          <span class="num found__count">47 torrents</span>
+          <span class="found__take">Take over</span>
+        </li>
+        <li class="found__item">
+          <span class="found__name">qBittorrent</span>
+          <span class="num found__count">12 torrents</span>
+          <span class="found__take">Take over</span>
+        </li>
+        <li class="found__item is-muted">
+          <span class="found__name">Deluge</span>
+          <span class="num found__count">Not found</span>
+          <span class="found__take"></span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <p class="eyebrow">Parity</p>
+    <h2 class="section__title">
+      Everything you'd expect, and nothing you wouldn't.
+    </h2>
+    <p class="section__lead">
+      A modern interface is not worth much if it costs you the features you
+      actually use. Every line below is in the shipping build.
+    </p>
+
+    <ul class="parity">
+      {
+        parity.map((item) => (
+          <li class="parity__item">
+            <svg
+              class="parity__check"
+              width="15"
+              height="15"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m3.2 8.4 2.7 2.7 6.9-6.9" />
+            </svg>
+            {item}
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="section__caveat">
+      Sequential download is <strong>not</strong> in that list. It is not implementable
+      against librqbit v9, whose file-priority type is private, and it is tracked
+      in the open rather than implied. Flume also has no RSS automation, no chat,
+      and no bundled search — those are omissions by choice.
+    </p>
+  </section>
+
+  <section class="wrap section">
+    <p class="eyebrow">The craft</p>
+    <h2 class="section__title">
+      Modern is a set of decisions, not a coat of paint.
+    </h2>
+    <ul class="grid">
+      {
+        craft.map((f) => (
+          <li class="card">
+            <h3 class="card__title">{f.title}</h3>
+            <p class="card__body">{f.body}</p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="wrap cta">
+    <h2 class="cta__title">Built for downloading Linux ISOs.</h2>
+    <p class="lead cta__lead">
+      Ubuntu, Debian, Fedora, Rocky, AlmaLinux — and seeding them back, which
+      distro mirrors genuinely need.
+    </p>
+    <div class="hero__cta cta__buttons">
+      <a
+        class="btn btn--primary"
+        href={release ? "/download/" : "/docs/development-setup/"}
+      >
+        {release ? "Download Flume" : "Build from source"}
+      </a>
+      <a class="btn btn--ghost" href="/docs/">Read the docs</a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  /* ---- buttons ---- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 44px;
+    padding-inline: 1.25rem;
+    border-radius: var(--r-md);
+    font-size: var(--t-small);
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background-color 0.14s ease,
+      border-color 0.14s ease,
+      color 0.14s ease;
+  }
+
+  .btn--primary {
+    background: var(--acc);
+    color: var(--on-acc);
+  }
+
+  .btn--primary:hover {
+    background: var(--acc-hi);
+  }
+
+  .btn--ghost {
+    border: 1px solid var(--line-2);
+    color: var(--fg-0);
+  }
+
+  .btn--ghost:hover {
+    background: var(--bg-2);
+    border-color: var(--fg-3);
+  }
+
+  .btn__ver {
+    font-size: var(--t-micro);
+    font-weight: 500;
+    opacity: 0.72;
+  }
+
+  /* ---- hero ---- */
+  .hero {
+    padding-top: clamp(3rem, 1rem + 8vw, 6.5rem);
+  }
+
+  .hero__inner {
+    text-align: center;
+  }
+
+  .hero__eyebrow {
+    margin-bottom: 1.5rem;
+  }
+
+  .hero__title {
+    font-size: var(--t-hero);
+    letter-spacing: -0.035em;
+    max-width: 16ch;
+    margin-inline: auto;
+  }
+
+  .hero__lead {
+    margin-top: 1.5rem;
+    margin-inline: auto;
+    max-width: 64ch;
+  }
+
+  .hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 2.25rem;
+  }
+
+  .hero__note {
+    margin-top: 1.25rem;
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  .hero__note a {
+    color: var(--acc);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .hero__shot {
+    margin-top: clamp(2.5rem, 1rem + 5vw, 4.5rem);
+  }
+
+  .hero__caption {
+    margin-top: 0.9rem;
+    text-align: center;
+    font-size: var(--t-micro);
+    color: var(--fg-3);
+  }
+
+  /* ---- bands and sections ---- */
+  .band {
+    margin-top: clamp(4rem, 2rem + 7vw, 7rem);
+    padding-block: clamp(3rem, 1.5rem + 5vw, 5rem);
+    border-block: 1px solid var(--line);
+    background: var(--bg-1);
+  }
+
+  .section {
+    margin-top: clamp(4rem, 2rem + 7vw, 7rem);
+  }
+
+  .band__title,
+  .section__title {
+    margin-top: 0.9rem;
+    font-size: var(--t-display);
+    max-width: 26ch;
+  }
+
+  .section__lead {
+    margin-top: 1.1rem;
+    color: var(--fg-1);
+    max-width: 60ch;
+  }
+
+  .band__cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem 3rem;
+    margin-top: 2rem;
+    color: var(--fg-1);
+    max-width: 92ch;
+  }
+
+  .section__caveat {
+    margin-top: 2.25rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    color: var(--fg-2);
+    font-size: var(--t-small);
+    max-width: 78ch;
+  }
+
+  .section__caveat strong {
+    color: var(--fg-0);
+    font-weight: 600;
+  }
+
+  /* ---- verdicts ---- */
+  .verdicts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .verdict {
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .verdict__head {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--t-small);
+    font-weight: 600;
+  }
+
+  .verdict__dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .verdict.is-ok .verdict__head {
+    color: var(--ok);
+  }
+  .verdict.is-warn .verdict__head {
+    color: var(--warn);
+  }
+  .verdict.is-err .verdict__head {
+    color: var(--err);
+  }
+
+  .verdict__body {
+    margin-top: 0.5rem;
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  /* ---- split ---- */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: clamp(2rem, 1rem + 4vw, 4rem);
+    align-items: center;
+    margin-top: clamp(4rem, 2rem + 7vw, 7rem);
+  }
+
+  .split__title {
+    margin-top: 0.9rem;
+    font-size: var(--t-display);
+  }
+
+  .split__text p,
+  .migrate__text p {
+    margin-top: 1.1rem;
+    color: var(--fg-1);
+    max-width: 52ch;
+  }
+
+  .split__note {
+    font-size: var(--t-small);
+    color: var(--fg-2) !important;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  /* ---- bottleneck panel ---- */
+  .panel {
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .limits {
+    display: grid;
+    gap: 1.1rem;
+    margin: 1.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .limit__row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    font-size: var(--t-small);
+  }
+
+  .limit__name {
+    color: var(--fg-0);
+    font-weight: 500;
+  }
+
+  .limit__val {
+    font-size: var(--t-micro);
+    color: var(--fg-2);
+  }
+
+  .limit__track {
+    display: block;
+    height: 5px;
+    margin-top: 0.5rem;
+    border-radius: 3px;
+    background: var(--bg-3);
+    overflow: hidden;
+  }
+
+  .limit__fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: var(--acc-dim);
+  }
+
+  .limit__fill.is-binding {
+    background: var(--warn);
+  }
+
+  .limit__tag {
+    display: block;
+    margin-top: 0.45rem;
+    font-size: var(--t-micro);
+    color: var(--warn);
+  }
+
+  .limit.is-absent .limit__name,
+  .limit.is-absent .limit__val {
+    color: var(--fg-3);
+  }
+
+  .panel__foot {
+    margin-top: 1.4rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+    font-size: var(--t-micro);
+    color: var(--fg-3);
+  }
+
+  /* ---- migration ---- */
+  .migrate {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    gap: clamp(2rem, 1rem + 4vw, 4rem);
+    align-items: center;
+  }
+
+  .migrate__title {
+    max-width: 18ch;
+  }
+
+  .found {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .found__item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.95rem 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-0);
+    font-size: var(--t-small);
+  }
+
+  .found__name {
+    font-weight: 600;
+  }
+
+  .found__count {
+    font-size: var(--t-micro);
+    color: var(--fg-2);
+  }
+
+  .found__take {
+    display: inline-flex;
+    align-items: center;
+    height: var(--h-chip);
+    padding-inline: 0.75rem;
+    border-radius: var(--r-sm);
+    background: var(--acc);
+    color: var(--on-acc);
+    font-size: var(--t-micro);
+    font-weight: 600;
+  }
+
+  .found__item.is-muted {
+    opacity: 0.55;
+  }
+
+  .found__item.is-muted .found__take {
+    display: none;
+  }
+
+  /* ---- parity ---- */
+  .parity {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem 2.5rem;
+    margin: 2.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .parity__item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 0.7rem;
+    font-size: var(--t-small);
+    color: var(--fg-1);
+  }
+
+  .parity__check {
+    color: var(--ok);
+    margin-top: 0.22em;
+  }
+
+  /* ---- craft grid ---- */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .card {
+    padding: 1.4rem 1.4rem 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .card__title {
+    font-size: 1.02rem;
+    letter-spacing: -0.014em;
+  }
+
+  .card__body {
+    margin-top: 0.6rem;
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  /* ---- closing ---- */
+  .cta {
+    margin-top: clamp(4rem, 2rem + 7vw, 7rem);
+    text-align: center;
+  }
+
+  .cta__title {
+    font-size: var(--t-display);
+    max-width: 20ch;
+    margin-inline: auto;
+  }
+
+  .cta__lead {
+    margin-top: 1.1rem;
+    margin-inline: auto;
+    max-width: 52ch;
+  }
+
+  .cta__buttons {
+    margin-top: 2rem;
+  }
+
+  /* ---- narrowing ---- */
+  @media (max-width: 900px) {
+    .split,
+    .migrate {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 700px) {
+    .band__cols {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .verdicts {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .parity {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.8rem;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* The headline stays centred — it is three words a line. The paragraph
+       does not: centred, it runs to nine ragged lines on a phone, and every
+       one of them starts in a different place. */
+    .hero__lead,
+    .cta__lead {
+      text-align: left;
+    }
+  }
+</style>

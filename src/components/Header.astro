@@ -1,0 +1,132 @@
+---
+import Logo from "./Logo.astro";
+import ThemeToggle from "./ThemeToggle.astro";
+
+const path = Astro.url.pathname;
+
+const links = [
+  { href: "/download/", label: "Download" },
+  { href: "/docs/", label: "Docs" },
+  { href: "/changelog/", label: "Changelog" },
+];
+
+/** A link is current when the path is inside its section, not only equal. */
+const isCurrent = (href: string) => path === href || path.startsWith(href);
+---
+
+<header class="header">
+  <div class="wrap header__inner">
+    <a href="/" class="header__home" aria-label="Flume home">
+      <Logo size={26} wordmark />
+    </a>
+
+    <nav class="header__nav" aria-label="Main">
+      {
+        links.map((link) => (
+          <a
+            href={link.href}
+            class="header__link"
+            aria-current={isCurrent(link.href) ? "page" : undefined}
+          >
+            {link.label}
+          </a>
+        ))
+      }
+      <a
+        href="https://github.com/adamgreenwell/flume"
+        class="header__link header__link--ext"
+        rel="noopener"
+      >
+        GitHub
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M6.5 3.5H12.5V9.5M12.5 3.5 4 12"></path>
+        </svg>
+      </a>
+      <ThemeToggle />
+    </nav>
+  </div>
+</header>
+
+<style>
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: color-mix(in srgb, var(--bg-0) 82%, transparent);
+    backdrop-filter: blur(14px) saturate(1.4);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    height: 60px;
+  }
+
+  .header__home {
+    text-decoration: none;
+    border-radius: var(--r-md);
+  }
+
+  .header__nav {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .header__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    height: var(--h-control);
+    padding-inline: 0.7rem;
+    border-radius: var(--r-md);
+    color: var(--fg-2);
+    font-size: var(--t-small);
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      color 0.14s ease,
+      background-color 0.14s ease;
+  }
+
+  .header__link:hover {
+    color: var(--fg-0);
+    background: var(--bg-2);
+  }
+
+  .header__link[aria-current="page"] {
+    color: var(--fg-0);
+    background: var(--bg-2);
+  }
+
+  /*
+   * Below 640px the nav would wrap under the logo and double the header
+   * height, which on a sticky header costs a fifth of a phone screen on every
+   * page. GitHub and the changelog are the two a phone visitor is least likely
+   * to want, so they go rather than the header growing.
+   */
+  @media (max-width: 640px) {
+    .header__link--ext,
+    .header__link[href="/changelog/"] {
+      display: none;
+    }
+
+    .header__link {
+      padding-inline: 0.55rem;
+    }
+  }
+</style>

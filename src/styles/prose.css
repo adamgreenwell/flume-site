@@ -1,0 +1,169 @@
+/*
+ * Typography for rendered markdown.
+ *
+ * The docs are written for the GitHub wiki, so they lean on plain markdown —
+ * headings, tables, fenced code, blockquotes and GitHub's `> [!NOTE]`
+ * callouts. Everything here styles that vocabulary and nothing else; there are
+ * no custom components to author against, because the source has to keep
+ * rendering correctly on GitHub too.
+ */
+
+.prose {
+  color: var(--fg-1);
+  font-size: 1.0125rem;
+  line-height: 1.72;
+  max-width: var(--measure);
+}
+
+.prose > * + * {
+  margin-top: 1.15rem;
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+  color: var(--fg-0);
+  letter-spacing: -0.02em;
+  scroll-margin-top: 5.5rem;
+}
+
+.prose h2 {
+  margin-top: 2.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--line);
+  font-size: 1.55rem;
+}
+
+/* The first heading in a page has nothing above it to be separated from. */
+.prose > h2:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.prose h3 {
+  margin-top: 2rem;
+  font-size: 1.2rem;
+}
+
+.prose h4 {
+  margin-top: 1.6rem;
+  font-size: 1.02rem;
+}
+
+.prose a {
+  color: var(--acc);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--acc) 40%, transparent);
+}
+
+.prose a:hover {
+  text-decoration-color: currentColor;
+}
+
+.prose strong {
+  color: var(--fg-0);
+  font-weight: 600;
+}
+
+.prose ul,
+.prose ol {
+  padding-left: 1.35rem;
+}
+
+.prose li + li {
+  margin-top: 0.4rem;
+}
+
+.prose li::marker {
+  color: var(--fg-3);
+}
+
+.prose code {
+  padding: 0.12em 0.36em;
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.87em;
+  color: var(--fg-0);
+}
+
+.prose pre {
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg-1);
+  /* Long commands scroll inside the block rather than widening the page. */
+  overflow-x: auto;
+  font-size: 0.87rem;
+  line-height: 1.65;
+}
+
+.prose pre code {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: inherit;
+}
+
+.prose blockquote {
+  margin-inline: 0;
+  padding: 0.9rem 1.15rem;
+  border-left: 2px solid var(--acc-dim);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  background: var(--bg-1);
+  color: var(--fg-2);
+}
+
+.prose blockquote > * + * {
+  margin-top: 0.6rem;
+}
+
+/*
+ * Tables carry a lot of the docs' weight — settings, verdicts, platform
+ * matrices — so they get real treatment rather than browser defaults.
+ * Wrapped in an overflow container by the layout, since a five-column table
+ * cannot be made to fit a phone and squeezing it is worse than scrolling it.
+ */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--t-small);
+}
+
+.prose th,
+.prose td {
+  padding: 0.6rem 0.9rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose th {
+  color: var(--fg-0);
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom-color: var(--line-2);
+}
+
+.prose td code {
+  white-space: nowrap;
+}
+
+.prose hr {
+  margin-block: 2.25rem;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+
+.prose img {
+  border-radius: var(--r-md);
+}
+
+/* The horizontal scroller the layout wraps every table in. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

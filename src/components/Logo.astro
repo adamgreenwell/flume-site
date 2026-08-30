@@ -1,0 +1,77 @@
+---
+/**
+ * The Flume mark.
+ *
+ * A channel carrying flow, which also reads as the product's initial. The
+ * outer stroke runs up the stem and turns along the top arm in one unbroken
+ * path — that continuity is the whole idea, so it is a single `<path>` with a
+ * generous corner radius rather than a stem and an arm butted together. The
+ * short stroke inside it is what the channel carries.
+ *
+ * Drawn on a 32-unit grid at a 6.2-unit stroke with round caps. That is
+ * heavier than the app's UI glyphs (1.5px optical on a 16 grid) and
+ * deliberately so: `Icon.tsx` draws controls, which sit in a row of other
+ * controls and must not shout, while this has to survive a 16px favicon and a
+ * dock tile. The idiom — stroked, round-capped, plain geometry, no fill — is
+ * shared; only the weight class differs.
+ *
+ * One tone, always. Two-tone variants were tried and lose on both ends: on
+ * dark the second tone is too subtle to register, and any tone light enough to
+ * register on dark disappears against the light theme's near-white ground.
+ * A single accent also matches the app's rule that one colour does all the
+ * interactive work.
+ *
+ * Colour comes from `currentColor` so the mark follows the theme rather than
+ * carrying a hardcoded hex into a palette that swaps at runtime.
+ */
+interface Props {
+  /** Edge length of the mark in pixels. */
+  size?: number;
+  /** Render the wordmark beside the mark. */
+  wordmark?: boolean;
+  /** Extra classes on the wrapper. */
+  class?: string;
+}
+
+const { size = 28, wordmark = false, class: klass = "" } = Astro.props;
+---
+
+<span class:list={["logo", klass]}>
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 32 32"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="6.2"
+    stroke-linecap="round"
+    role="img"
+    aria-label={wordmark ? "Flume" : "Flume logo"}
+  >
+    <path d="M9 28.4V9.6A5.1 5.1 0 0 1 14.1 4.5H26.6"></path>
+    <path d="M9 15.2H20"></path>
+  </svg>
+  {wordmark && <span class="logo__word">Flume</span>}
+</span>
+
+<style>
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--acc);
+  }
+
+  /*
+   * The wordmark is set tighter than body copy. At display sizes Instrument
+   * Sans's default fit opens up noticeably, and the mark beside it reads as a
+   * separate object unless the letters are drawn back together.
+   */
+  .logo__word {
+    color: var(--fg-0);
+    font-size: 1.28rem;
+    font-weight: 600;
+    letter-spacing: -0.026em;
+    line-height: 1;
+  }
+</style>

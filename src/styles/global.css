@@ -1,0 +1,334 @@
+/*
+ * Flume site — type and design tokens.
+ *
+ * The palette below is transcribed verbatim from the app's
+ * `src/app/globals.css`. It is the same vocabulary, deliberately: the site and
+ * the product should not have two ideas about what "accent" means. Values were
+ * derived in OKLCH at fixed chroma and hue and then converted to sRGB, so a
+ * step that is not listed here has to be derived the same way — never
+ * interpolated between two of these in sRGB.
+ *
+ * Two things intentionally diverge from the app, both because a web page is
+ * not a desktop chrome:
+ *
+ *   1. The type ramp. The app's base is 13px, sized for a dense list read at
+ *      arm's length. Body copy on a site is read as prose, so the base here is
+ *      16.5px and the ramp is rebuilt against it. The families, the tabular
+ *      figures rule, and the tracking idiom carry over unchanged.
+ *
+ *   2. `font-display`. The app uses `block` because its fonts are local and
+ *      decode in a frame. Over a network that would mean invisible text, so
+ *      the site uses `swap` and preloads the two faces that appear above the
+ *      fold. The reflow that `block` was avoiding is bought off with the
+ *      preload rather than with a blank screen.
+ */
+
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/instrument-sans-latin-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+    U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/instrument-sans-latin-ext-wght-normal.woff2")
+    format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB,
+    U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-500-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-latin-600-normal.woff2") format("woff2");
+}
+
+/* Dark is the default, as in the app. */
+:root {
+  --bg-0: #12100e;
+  --bg-1: #1b1816;
+  --bg-2: #23211e;
+  --bg-3: #2d2a27;
+
+  --line: #373330;
+  --line-2: #6a6660;
+
+  --fg-0: #f2f0ec;
+  --fg-1: #c2c0bc;
+  --fg-2: #9d9a96;
+  --fg-3: #85827e;
+  --fg-dis: #5f5c58;
+
+  --acc: #5ab8ea;
+  --acc-dim: #3a83aa;
+  --acc-deep: #184258;
+  --on-acc: #0b1116;
+  --acc-hi: #79c8f0;
+
+  --ok: #76c68d;
+  --ok-deep: #23462d;
+  --warn: #e6b55d;
+  --err: #e86c66;
+
+  --chart-down: #009cd9;
+  --chart-up: #44a866;
+
+  --font-ui:
+    "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --r-sm: 4px;
+  --r-md: 6px;
+  --r-lg: 9px;
+  /* One step the app has no use for: a page-scale panel radius. Derived by
+     continuing the 4/6/9 progression rather than jumping to a round number. */
+  --r-xl: 14px;
+
+  --h-chip: 28px;
+  --h-control: 30px;
+  --h-primary: 34px;
+
+  /*
+   * The site's type ramp. Built against a 16.5px base rather than the app's
+   * 13px — see the note at the top of this file.
+   *
+   * Display sizes are fluid between a 380px and a 1200px viewport so a hero
+   * headline does not have to be re-broken at four breakpoints. The floor is
+   * the size the line was actually composed at; the ceiling is where it stops
+   * getting better.
+   */
+  --t-hero: clamp(2.5rem, 1.35rem + 4.85vw, 4.75rem);
+  --t-display: clamp(1.95rem, 1.35rem + 2.55vw, 3.05rem);
+  --t-title: clamp(1.45rem, 1.18rem + 1.15vw, 1.95rem);
+  --t-lead: clamp(1.06rem, 0.98rem + 0.36vw, 1.22rem);
+  --t-body: 1rem;
+  --t-small: 0.875rem;
+  --t-micro: 0.75rem;
+
+  --measure: 64ch;
+
+  /* The page gutter, shared by the header, footer and every section. */
+  --pad: clamp(1.25rem, 0.75rem + 2.2vw, 2.5rem);
+  --maxw: 1180px;
+
+  color-scheme: dark;
+}
+
+/*
+ * Light is a re-step of the same roles, not an inversion — which is why every
+ * value is written out again rather than computed. Declared twice for the same
+ * reason as the app: an explicit choice must beat the system preference, and
+ * one combined selector cannot express both without one overriding the other.
+ */
+:root[data-theme="light"] {
+  --bg-0: #f7f6f3;
+  --bg-1: #fefdfc;
+  --bg-2: #ffffff;
+  --bg-3: #efece8;
+
+  --line: #dedcd7;
+  --line-2: #8f8b85;
+
+  --fg-0: #26221e;
+  --fg-1: #55514c;
+  --fg-2: #6d6964;
+  --fg-3: #57534e;
+  --fg-dis: #9a968f;
+
+  --acc: #007ab0;
+  --acc-dim: #4f9ec9;
+  --acc-deep: #c5e3f5;
+  --on-acc: #ffffff;
+  --acc-hi: #006ba0;
+
+  --ok: #26844a;
+  --ok-deep: #cbe6d1;
+  --warn: #b47300;
+  --err: #bf3a39;
+
+  --chart-down: #007ab0;
+  --chart-up: #26844a;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg-0: #f7f6f3;
+    --bg-1: #fefdfc;
+    --bg-2: #ffffff;
+    --bg-3: #efece8;
+
+    --line: #dedcd7;
+    --line-2: #8f8b85;
+
+    --fg-0: #26221e;
+    --fg-1: #55514c;
+    --fg-2: #6d6964;
+    --fg-3: #57534e;
+    --fg-dis: #9a968f;
+
+    --acc: #007ab0;
+    --acc-dim: #4f9ec9;
+    --acc-deep: #c5e3f5;
+    --on-acc: #ffffff;
+    --acc-hi: #006ba0;
+
+    --ok: #26844a;
+    --ok-deep: #cbe6d1;
+    --warn: #b47300;
+    --err: #bf3a39;
+
+    --chart-down: #007ab0;
+    --chart-up: #26844a;
+
+    color-scheme: light;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  /* Every in-page anchor has to clear the sticky header. */
+  scroll-padding-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+body {
+  margin: 0;
+  background: var(--bg-0);
+  color: var(--fg-0);
+  font-family: var(--font-ui);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /*
+   * The app disables text selection because it is a desktop chrome. A web page
+   * is a document and must not — people quote, copy commands, and paste
+   * magnet links out of the docs.
+   */
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+
+a {
+  color: inherit;
+}
+
+img,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+/* Every number in the app is mono with tabular figures. Same here — and for
+   the same reason wherever figures are stacked in a column. */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* Shared page furniture. */
+.wrap {
+  width: 100%;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  padding-inline: var(--pad);
+}
+
+.eyebrow {
+  font-size: var(--t-micro);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.lead {
+  font-size: var(--t-lead);
+  line-height: 1.55;
+  color: var(--fg-1);
+}

@@ -15,6 +15,21 @@ updates:
         patterns: ["astro", "@astrojs/*"]
       dev-tooling:
         patterns: ["prettier*", "typescript"]
+    ignore:
+      # TypeScript majors are held back, for a different reason than the app
+      # repo holds them back. There is no ESLint here; the blocker is
+      # `@astrojs/check`, whose peer range does not admit TypeScript 7:
+      #
+      #   npm error ERESOLVE could not resolve
+      #   npm error While resolving: @astrojs/check@0.9.10
+      #   npm error Found: typescript@7.0.2
+      #
+      # `npm ci` cannot install at all, so the bump fails before anything is
+      # built — and because typescript shares the dev-tooling group, it takes
+      # the Prettier updates down with it. Lift this when @astrojs/check
+      # declares support for 7.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
     directory: /

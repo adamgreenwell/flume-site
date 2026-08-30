@@ -121,15 +121,15 @@ const craft = [
             </>
           ) : (
             <>
-              <a class="btn btn--primary" href="/docs/development-setup/">
-                Build from source
-              </a>
               <a
-                class="btn btn--ghost"
-                href="https://github.com/adamgreenwell/flume"
+                class="btn btn--primary"
+                href="https://github.com/adamgreenwell/flume/releases/latest"
                 rel="noopener"
               >
-                View on GitHub
+                Download from GitHub
+              </a>
+              <a class="btn btn--ghost" href="/docs/getting-started/">
+                Getting started
               </a>
             </>
           )
@@ -137,11 +137,24 @@ const craft = [
       </div>
 
       {
+        /*
+         * Reached only when the build could not read the release API — not
+         * when nothing is released. 1.0 shipped, so the old copy ("not
+         * published yet, 1.0 is close") would now be a confident false
+         * statement on the home page every time GitHub rate-limits a build.
+         * Send people to the releases page, which is always right.
+         */
         !release && (
           <p class="hero__note">
-            Installers are not published yet — 1.0 is close. Until then the
-            <a href="/docs/development-setup/"> development setup</a> builds it
-            in a few commands.
+            This page could not reach GitHub when it was last built, so the
+            version is not shown here. The{" "}
+            <a
+              href="https://github.com/adamgreenwell/flume/releases/latest"
+              rel="noopener"
+            >
+              latest release
+            </a>{" "}
+            always has the current installers.
           </p>
         )
       }

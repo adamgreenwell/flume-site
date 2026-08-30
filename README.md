@@ -34,11 +34,12 @@ Because it is resolved at build time, **publishing a release does not update the
 site on its own**. `.github/workflows/release.yml` in the app repo pings a
 Sevalla deploy hook after a release is published; see `docs/deploy.md`.
 
-> Until 1.0 is tagged there is nothing to fetch, so every build takes the
-> "nothing published yet" path. To work on the download and changelog pages
-> before then, set `FLUME_FAKE_RELEASE=1` (in `.env` or the environment) to
-> render a fixture whose filenames match exactly what the release workflow's
-> bundlers emit. Delete `fixture()` in `src/lib/releases.ts` once 1.0 ships.
+> `FLUME_FAKE_RELEASE=1` (in `.env` or the environment) renders a fixture
+> instead of calling the API. It mirrors `v1.0.0-rc.1` — a pre-release whose
+> `.rpm` jobs failed, so it carries neither an `.rpm` nor a `SHA256SUMS`. That
+> is deliberate: those are the branches the live API no longer exercises now
+> that `v1.0.0` is complete, and they are the ones that would otherwise promise
+> a Fedora package that is not in the release. CI builds both ways.
 
 **Documentation** is copied from the app repo's `docs/` directory, which is
 also the source for the GitHub Wiki. It is not fetched at build time: the app

@@ -1,29 +1,34 @@
 ---
 /**
- * A static replica of Flume's library window.
+ * A static replica of Flume's window.
  *
- * Rebuilt in markup rather than screenshotted, for three reasons: it stays
- * sharp on any display, it follows the site's theme so a light-mode visitor
- * sees the light app, and it cannot go stale in the silent way a PNG does —
- * when the app's tokens move, this moves with them.
+ * Rebuilt in markup rather than screenshotted, so it stays sharp at any
+ * resolution, follows the visitor's theme, and cannot go stale the silent way
+ * a PNG does.
  *
- * Geometry is transcribed from the app: 58px comfortable rows, an 18px status
- * ring, the 180px progress column, 86px rate cells, and the piece strip's
- * 22px/16px stacked pair with its 1px gaps. The availability bars use the
- * app's own rule — a region no peer holds is drawn full height in the error
- * colour, and held regions are capped at 80% so a zero always stands taller.
+ * Every measurement here is transcribed from the app's own components rather
+ * than eyeballed from a screenshot — the first version of this file was
+ * guessed from two components and drifted badly, missing the rail, the
+ * toolbar, the inline detail panel and the dock entirely. The sources are:
  *
- * The figures below are plausible, not real. They describe the case the piece
- * map exists to show: a torrent that is 61% done and healthy, next to one that
- * has a gap no connected peer can fill.
+ *   page.tsx        `grid-cols-[248px_1fr] grid-rows-[44px_1fr]`
+ *   TitleBar.tsx    h-11, 88px left inset for the traffic lights
+ *   Rail.tsx        the three-wave mark, search with its `/` badge, VIEWS,
+ *                   the DHT/port footer
+ *   LibraryToolbar  h-14, title + count, sort chips, primary action
+ *   TorrentRow      58px rows, 18px ring, 180px progress, 86px rates
+ *   ExpandedRow     pl-[52px], five stats, three chips, the piece strip
+ *   PieceStrip      22px over 16px, 1px gaps, availability capped at 80% so a
+ *                   zero-copy region always stands tallest
+ *   Dock            min-h 116px, chart beside an auto-fit stat grid
+ *
+ * The data is plausible rather than real, and it is a busier library than any
+ * one screenshot: a hero where every figure reads `0 B/s` shows nothing
+ * working. The counts in the rail add up to the rows in the list, because a
+ * detail like that being wrong is exactly what makes a mock look like a mock.
  */
 
-/**
- * Deterministic PRNG, so the strip is identical on every build.
- *
- * `Math.random()` here would mean a different hero in every deploy and a
- * pointless diff in any visual comparison.
- */
+/** Deterministic PRNG, so the strip is identical on every build. */
 function rng(seed: number) {
   let s = seed;
   return () => {
@@ -32,16 +37,8 @@ function rng(seed: number) {
   };
 }
 
-const CELLS = 96;
+const CELLS = 104;
 
-/**
- * Completion levels for the upper strip, in the app's three bands:
- * verified (`acc-dim`), in flight (`acc`), not requested (`bg-3`).
- *
- * Shaped as a rarest-first download — a solid head, then scattered verified
- * blocks through the middle and tail, which is what the app draws when the
- * engine is not pulling in order.
- */
 const done = rng(20260830);
 const pieces = Array.from({ length: CELLS }, (_, i) => {
   const head = i < CELLS * 0.42;
@@ -53,10 +50,10 @@ const pieces = Array.from({ length: CELLS }, (_, i) => {
 });
 
 /**
- * Copies of each region across connected peers, for the lower strip.
+ * Copies of each region across connected peers.
  *
- * Deliberately thinning toward the tail, with one region at zero — the shape
- * the docs describe as "a torrent heading for a stall".
+ * Thinning toward the tail with one region at zero — the shape the user guide
+ * calls "a torrent heading for a stall".
  */
 const avail = rng(77021);
 const peak = 9;
@@ -64,257 +61,485 @@ const copies = Array.from({ length: CELLS }, (_, i) => {
   const thinning = 1 - (i / CELLS) * 0.62;
   return Math.max(1, Math.round((2 + avail() * 7) * thinning));
 });
-copies[78] = 0;
-copies[79] = 0;
+copies[84] = 0;
+copies[85] = 0;
+
+/** Throughput history for the dock chart, 60 samples. */
+const flow = rng(4242);
+const history = Array.from({ length: 60 }, (_, i) => {
+  const ramp = Math.min(1, i / 14);
+  return {
+    down: (4.4 + flow() * 2.6) * 1e6 * ramp,
+    up: (0.7 + flow() * 0.9) * 1e6 * ramp,
+  };
+});
+
+const views = [
+  { label: "All torrents", icon: "files", count: 5, current: true },
+  { label: "Downloading", icon: "arrow-down", count: 2 },
+  { label: "Seeding", icon: "arrow-up", count: 2 },
+  { label: "Needs attention", icon: "alert-triangle", count: 1 },
+  { label: "Completed", icon: "check-circle", count: 2 },
+  { label: "Paused & queued", icon: "pause", count: 1 },
+];
 
 const rows = [
   {
     name: "ubuntu-24.04.1-desktop-amd64.iso",
     size: "5.70 GB",
-    detail: "61% · 12 min left · 24 peers",
+    detail: "61% · 12 min left",
     percent: 61,
     state: "downloading",
     down: "6.6 MB/s",
     up: "1.2 MB/s",
+    peers: "24 / 106",
     health: "healthy",
     healthLabel: "Healthy",
     selected: true,
   },
   {
-    name: "debian-12.7.0-amd64-DVD-1.iso",
-    size: "3.72 GB",
-    detail: "34% · 41 min left · 6 peers",
-    percent: 34,
-    state: "downloading",
-    down: "1.4 MB/s",
-    up: "0 B/s",
-    health: "thin",
-    healthLabel: "Thin swarm",
-  },
-  {
-    name: "Fedora-Workstation-Live-41-1.4.x86_64.iso",
-    size: "2.23 GB",
-    detail: "Complete · ratio 2.14 · 11 peers",
+    name: "debian-13.6.0-arm64-netinst.iso",
+    size: "735 MB",
+    detail: "seeding to 12 of 342 known peers",
     percent: 100,
     state: "seeding",
     down: "0 B/s",
     up: "3.9 MB/s",
+    peers: "12 / 342",
+    health: "seeding",
+    healthLabel: "Seeding",
+  },
+  {
+    name: "Fedora-Workstation-Live-41-1.4.x86_64.iso",
+    size: "2.23 GB",
+    detail: "complete · ratio 2.14",
+    percent: 100,
+    state: "seeding",
+    down: "0 B/s",
+    up: "1.4 MB/s",
+    peers: "7 / 88",
     health: "seeding",
     healthLabel: "Seeding",
   },
   {
     name: "AlmaLinux-9.4-x86_64-dvd.iso",
     size: "11.4 GB",
-    detail: "Paused at 88%",
+    detail: "paused at 88%",
     percent: 88,
     state: "paused",
     down: "0 B/s",
     up: "0 B/s",
+    peers: "0 / 41",
     health: "idle",
     healthLabel: "Idle",
   },
   {
     name: "rocky-9.4-x86_64-minimal.iso",
     size: "2.44 GB",
-    detail: "72% · stalled · no peer holds 3.1% of pieces",
+    detail: "72% · no peer holds 3.1% of pieces",
     percent: 72,
     state: "downloading",
     down: "0 B/s",
     up: "184 KB/s",
+    peers: "9 / 63",
     health: "none",
     healthLabel: "No seeds",
   },
 ];
 
-const rails = [
-  { label: "All", count: 5, current: true },
-  { label: "Downloading", count: 3 },
-  { label: "Seeding", count: 1 },
-  { label: "Paused", count: 1 },
+const sorts = ["Activity", "Recently added", "Size"];
+
+const dockStats = [
+  { label: "Active", value: "4 of 5" },
+  { label: "Session down", value: "12.9 GB" },
+  { label: "Session up", value: "3.71 GB" },
+  { label: "Share ratio", value: "0.29" },
+  { label: "Connected peers", value: "52" },
+  { label: "Known peers", value: "640" },
+  { label: "DHT nodes", value: "1018" },
+  { label: "Uptime", value: "41 min" },
 ];
 
-/**
- * Per-row animation parameters, handed to the client script.
- *
- * `gain` is percentage points per second, chosen so the two live downloads
- * advance visibly over the time someone spends reading the hero without
- * either completing — a bar that fills and stops would be a worse picture of
- * the app than one that is still going.
- */
+/** 16-grid icon paths, lifted from the app's `Icon.tsx`. */
+const ICONS: Record<string, string> = {
+  files: "M4 2.4h5l3 3v8.2H4zM9 2.4v3.2h3",
+  "arrow-down": "M8 2.6v8.4M4.6 7.6 8 11l3.4-3.4M3 13.4h10",
+  "arrow-up": "M8 13.4V5M4.6 8.4 8 5l3.4 3.4M3 2.6h10",
+  "alert-triangle": "M8 2.2 14.8 13.8H1.2zM8 6.4v3.2M8 11.8v.1",
+  "check-circle":
+    "M8 2.2a5.8 5.8 0 1 0 0 11.6 5.8 5.8 0 0 0 0-11.6zM5.4 8.2l1.9 1.9 3.5-4",
+  pause: "M6.2 3.6v8.8M9.8 3.6v8.8",
+  search: "M11.3 7a4.3 4.3 0 1 1-8.6 0 4.3 4.3 0 0 1 8.6 0m-1.1 3.2 3 3",
+  plus: "M8 3.5v9M3.5 8h9",
+  settings:
+    "M2.4 5.2h3.2M9.2 5.2h4.4M2.4 10.8h4.4M10 10.8h3.6M8.6 5.2a1.4 1.4 0 1 1-2.8 0 1.4 1.4 0 0 1 2.8 0M9.6 10.8a1.4 1.4 0 1 1-2.8 0 1.4 1.4 0 0 1 2.8 0",
+  "chevron-right": "m6.2 4 4 4-4 4",
+};
+
+/** Motion parameters handed to the client script. */
 const motion = rows.map((r) => ({
-  state: r.state,
-  percent: r.percent,
   gain: r.state === "downloading" && r.down !== "0 B/s" ? 0.11 : 0,
   down: r.down,
   up: r.up,
 }));
+
+/** Builds the two chart polylines from the seeded history. */
+const W = 320;
+const H = 88;
+const ceiling = 9e6;
+const pointsFor = (key: "down" | "up") =>
+  history
+    .map((h, i) => {
+      const x = (i / (history.length - 1)) * W;
+      const y = H - Math.min(1, h[key] / ceiling) * (H - 6) - 3;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+const downPoints = pointsFor("down");
+const upPoints = pointsFor("up");
 ---
 
 <div
   class="app"
   data-app
   role="img"
-  aria-label="The Flume library window, showing five Linux ISO torrents. The selected torrent is 61 percent complete with a healthy swarm; its piece map shows which regions are verified and how many connected peers hold each one."
+  aria-label="The Flume window. A sidebar lists views with counts; five Linux distribution torrents are in the library, one selected and expanded to show its piece map, the peers contributing to it, and a plain-language note about what is limiting it. A dock along the bottom charts session throughput beside eight session statistics."
 >
-  <div class="app__bar">
-    <span class="app__dots" aria-hidden="true"><i></i><i></i><i></i></span>
-    <span class="app__title">Flume</span>
-    <span class="app__status">
-      <span class="app__dot"></span>
-      <span class="num">Ready · DHT <span data-dht>214</span> nodes</span>
+  <!-- ── title bar ────────────────────────────────────────────── -->
+  <div class="bar">
+    <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="bar__name">Flume</span>
+    <span class="bar__rates">
+      <span class="bar__dl">
+        <svg viewBox="0 0 16 16" width="13" height="13"
+          ><path d={ICONS["arrow-down"]}></path></svg
+        >
+      </span>
+      <span class="num" data-total-down>6.6 MB/s</span>
+      <span class="bar__ul">
+        <svg viewBox="0 0 16 16" width="13" height="13"
+          ><path d={ICONS["arrow-up"]}></path></svg
+        >
+      </span>
+      <span class="num" data-total-up>5.5 MB/s</span>
     </span>
   </div>
 
-  <div class="app__body">
+  <div class="body">
+    <!-- ── rail ───────────────────────────────────────────────── -->
     <aside class="rail">
-      {
-        rails.map((r) => (
-          <span class:list={["rail__item", r.current && "is-current"]}>
-            <span>{r.label}</span>
-            <span class="num rail__count">{r.count}</span>
-          </span>
-        ))
-      }
-      <span class="rail__spacer"></span>
-      <span class="rail__add">
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          aria-hidden="true"
-        >
-          <path d="M8 3.5v9M3.5 8h9"></path>
-        </svg>
-        Add torrent
-      </span>
-    </aside>
+      <div class="rail__head">
+        <div class="rail__brand">
+          <svg
+            class="mark"
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            aria-hidden="true"
+          >
+            <path d="M3 7.5c2.2-1.9 4.4-1.9 6.6 0s4.4 1.9 6.6 0 4.4-1.9 4.8 0"
+            ></path>
+            <path
+              d="M3 13c2.2-1.9 4.4-1.9 6.6 0s4.4 1.9 6.6 0 4.4-1.9 4.8 0"
+              opacity="0.62"></path>
+            <path
+              d="M3 18.5c2.2-1.9 4.4-1.9 6.6 0s4.4 1.9 6.6 0 4.4-1.9 4.8 0"
+              opacity="0.32"></path>
+          </svg>
+          <span class="rail__word">Flume</span>
+          <span class="rail__health"></span>
+        </div>
 
-    <div class="list">
-      <div class="list__head">
-        <span class="list__h list__h--name">Name</span>
-        <span class="list__h list__h--prog">Progress</span>
-        <span class="list__h list__h--rate">Down</span>
-        <span class="list__h list__h--rate">Up</span>
-        <span class="list__h list__h--health">Health</span>
+        <div class="search">
+          <span class="search__icon">
+            <svg viewBox="0 0 16 16" width="14" height="14"
+              ><path d={ICONS.search}></path></svg
+            >
+          </span>
+          <span class="search__input">Search library</span>
+          <span class="num search__key">/</span>
+        </div>
       </div>
 
-      {
-        rows.map((row) => (
-          <div class:list={["row", row.selected && "is-selected"]} data-row>
-            <span class:list={["row__ring", `is-${row.state}`]}>
-              <svg
-                width="11"
-                height="11"
-                viewBox="0 0 16 16"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                {row.state === "downloading" && (
-                  <path d="M8 2.6v8.4M4.6 7.6 8 11l3.4-3.4M3 13.4h10" />
-                )}
-                {row.state === "seeding" && (
-                  <path d="M8 13.4V5M4.6 8.4 8 5l3.4 3.4M3 2.6h10" />
-                )}
-                {row.state === "paused" && (
-                  <path d="M6.2 3.6v8.8M9.8 3.6v8.8" />
-                )}
-              </svg>
-            </span>
-
-            <span class="row__name">
-              <span class="row__title">{row.name}</span>
-              <span class="row__meta">
-                <span class="num">{row.size}</span>
-                <span class="row__sep">·</span>
-                <span class="row__detail">{row.detail}</span>
+      <nav class="views">
+        <p class="views__label">Views</p>
+        {
+          views.map((v) => (
+            <span class:list={["view", v.current && "is-current"]}>
+              <span class="view__icon">
+                <svg viewBox="0 0 16 16" width="16" height="16">
+                  <path d={ICONS[v.icon]} />
+                </svg>
               </span>
+              <span class="view__name">{v.label}</span>
+              <span class="num view__count">{v.count}</span>
             </span>
+          ))
+        }
+      </nav>
 
-            <span class="row__prog">
-              <span class="track">
-                <span
-                  class:list={["fill", `is-${row.state}`]}
-                  style={`width:${row.percent}%`}
-                />
-              </span>
-              <span class="num row__pct">{row.percent}%</span>
-            </span>
+      <div class="net">
+        <span class="net__row">
+          <i class="net__dot"></i>DHT · <span class="num" data-dht>1,018</span> nodes
+        </span>
+        <span class="net__row">
+          <i class="net__dot"></i>Port <span class="num">42221</span> open
+        </span>
+      </div>
+    </aside>
 
-            <span
-              class:list={[
-                "num",
-                "row__rate",
-                row.down === "0 B/s" && "is-zero",
-              ]}
-            >
-              {row.down}
-            </span>
-            <span
-              class:list={[
-                "num",
-                "row__rate",
-                "is-up",
-                row.up === "0 B/s" && "is-zero",
-              ]}
-            >
-              {row.up}
-            </span>
-
-            <span class="row__health">
-              <span class:list={["chip", `is-${row.health}`]}>
-                <span class="chip__dot" aria-hidden="true" />
-                {row.healthLabel}
-              </span>
-            </span>
-          </div>
-        ))
-      }
-
-      <div class="detail">
-        <div class="detail__head">
-          <span class="eyebrow"
-            >Piece map — ubuntu-24.04.1-desktop-amd64.iso</span
-          >
-          <span class="num detail__count">
-            <span data-verified>2,847</span> of 4,668 pieces
-          </span>
-        </div>
-
-        <div class="strip" data-strip>
-          {pieces.map((p) => <span class:list={["cell", `is-${p}`]} />)}
-        </div>
-        <div class="strip strip--avail">
+    <!-- ── main column ────────────────────────────────────────── -->
+    <div class="main">
+      <div class="toolbar">
+        <h2 class="toolbar__title">All torrents</h2>
+        <span class="num toolbar__count">5 items</span>
+        <span class="toolbar__spacer"></span>
+        <span class="chips">
           {
-            copies.map((c) => (
-              <span
-                class:list={["bar", c === 0 && "is-zero"]}
-                style={`height:${c === 0 ? 100 : Math.max(12, (c / peak) * 80)}%`}
-              />
+            sorts.map((s, i) => (
+              <span class:list={["chip", i === 0 && "is-on"]}>{s}</span>
             ))
           }
+          <span class="chip chip--icon">
+            <svg viewBox="0 0 16 16" width="14" height="14"
+              ><path d={ICONS.settings}></path></svg
+            >
+          </span>
+        </span>
+        <span class="add">
+          <svg viewBox="0 0 16 16" width="15" height="15"
+            ><path d={ICONS.plus}></path></svg
+          >
+          Add torrent
+        </span>
+      </div>
+
+      <div class="cols">
+        <span class="col col--name">Name</span>
+        <span class="col col--prog">Progress</span>
+        <span class="col col--rate">Down</span>
+        <span class="col col--rate">Up</span>
+        <span class="col col--peers">Peers</span>
+        <span class="col col--health">Swarm health</span>
+      </div>
+
+      <div class="list">
+        {
+          rows.map((row) => (
+            <>
+              <div class:list={["row", row.selected && "is-selected"]} data-row>
+                <span class:list={["ring", `is-${row.state}`]}>
+                  <svg viewBox="0 0 16 16" width="11" height="11">
+                    <path
+                      d={
+                        ICONS[
+                          row.state === "seeding"
+                            ? "arrow-up"
+                            : row.state === "paused"
+                              ? "pause"
+                              : "arrow-down"
+                        ]
+                      }
+                    />
+                  </svg>
+                </span>
+
+                <span class="row__name">
+                  <span class="row__title">{row.name}</span>
+                  <span class="row__meta">
+                    <span class="num">{row.size}</span>
+                    <span class="row__sep">·</span>
+                    <span class="row__detail">{row.detail}</span>
+                  </span>
+                </span>
+
+                <span class="row__prog">
+                  <span class="track">
+                    <span
+                      class:list={["fill", `is-${row.state}`]}
+                      style={`width:${row.percent}%`}
+                    />
+                  </span>
+                  <span class="num row__pct">{row.percent}%</span>
+                </span>
+
+                <span
+                  class:list={[
+                    "num",
+                    "row__rate",
+                    row.down === "0 B/s" && "is-zero",
+                  ]}
+                >
+                  {row.down}
+                </span>
+                <span
+                  class:list={[
+                    "num",
+                    "row__rate",
+                    "is-up",
+                    row.up === "0 B/s" && "is-zero",
+                  ]}
+                >
+                  {row.up}
+                </span>
+                <span class="num row__peers">{row.peers}</span>
+
+                <span class="row__health">
+                  <span class:list={["hchip", `is-${row.health}`]}>
+                    <span class="hchip__dot" aria-hidden="true" />
+                    {row.healthLabel}
+                  </span>
+                </span>
+              </div>
+
+              {row.selected && (
+                <div class="detail">
+                  <div class="detail__top">
+                    <span class="stat">
+                      <span class="stat__l">Downloaded</span>
+                      <span class="num stat__v" data-downloaded>
+                        3.48 GB
+                      </span>
+                    </span>
+                    <span class="stat">
+                      <span class="stat__l">Remaining</span>
+                      <span class="num stat__v" data-remaining>
+                        2.22 GB
+                      </span>
+                    </span>
+                    <span class="stat">
+                      <span class="stat__l">Ratio</span>
+                      <span class="num stat__v">0.18</span>
+                    </span>
+                    <span class="stat">
+                      <span class="stat__l">Pieces</span>
+                      <span class="num stat__v">
+                        <span data-verified>2,847</span> of 4,668
+                      </span>
+                    </span>
+                    <span class="stat stat--wide">
+                      <span class="stat__l">Saving to</span>
+                      <span class="stat__v stat__v--path">
+                        /Users/you/Downloads
+                      </span>
+                    </span>
+                    <span class="detail__acts">
+                      <span class="chip">Pause</span>
+                      <span class="chip">Reveal in folder</span>
+                      <span class="chip is-on">
+                        Open details
+                        <svg viewBox="0 0 16 16" width="12" height="12">
+                          <path d={ICONS["chevron-right"]} />
+                        </svg>
+                      </span>
+                    </span>
+                  </div>
+
+                  <div class="strip" data-strip>
+                    {pieces.map((p) => (
+                      <span class:list={["cell", `is-${p}`]} />
+                    ))}
+                  </div>
+                  <div class="strip strip--avail">
+                    {copies.map((c) => (
+                      <span
+                        class:list={["abar", c === 0 && "is-zero"]}
+                        style={`height:${c === 0 ? 100 : Math.max(12, (c / peak) * 80)}%`}
+                      />
+                    ))}
+                  </div>
+
+                  <div class="legend">
+                    <span class="legend__i">
+                      <i class="sw is-verified" />
+                      Verified
+                    </span>
+                    <span class="legend__i">
+                      <i class="sw is-flight" />
+                      In flight
+                    </span>
+                    <span class="legend__i">
+                      <i class="sw is-empty" />
+                      Not yet requested
+                    </span>
+                    <span class="legend__note">
+                      One region is held by no connected peer.
+                    </span>
+                  </div>
+
+                  <div class="detail__bottom">
+                    <div class="contrib">
+                      <p class="detail__h">Top contributors</p>
+                      <span class="contrib__row">
+                        <span class="contrib__n">qBittorrent 5.2</span>
+                        <span class="num contrib__v">2.9 MB/s</span>
+                      </span>
+                      <span class="contrib__row">
+                        <span class="contrib__n">Transmission 4.1</span>
+                        <span class="num contrib__v">1.8 MB/s</span>
+                      </span>
+                      <span class="contrib__row">
+                        <span class="contrib__n">libtorrent 2.0</span>
+                        <span class="num contrib__v">1.1 MB/s</span>
+                      </span>
+                    </div>
+
+                    <div class="note">
+                      <span class="note__icon">
+                        <svg viewBox="0 0 16 16" width="15" height="15">
+                          <path d={ICONS["check-circle"]} />
+                        </svg>
+                      </span>
+                      <span class="note__body">
+                        <strong>Held at your download cap</strong>
+                        <span>
+                          You are getting all 6.6 MB/s you allowed. Raising the
+                          limit in Settings is the only thing that would make
+                          this faster — the swarm has more to give.
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
+          ))
+        }
+      </div>
+
+      <!-- ── dock ─────────────────────────────────────────────── -->
+      <div class="dock">
+        <div class="chart">
+          <div class="chart__head">
+            <span class="chart__label">Session throughput · last 60 s</span>
+            <span class="chart__key"><i class="sw is-down"></i>Download</span>
+            <span class="chart__key"><i class="sw is-up"></i>Upload</span>
+            <span class="chart__peak"
+              ><i class="rule"></i>Peak <span class="num">9.0 MB/s</span></span
+            >
+          </div>
+          <svg
+            class="chart__svg"
+            viewBox={`0 0 ${W} ${H}`}
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <polyline class="chart__line chart__line--down" points={downPoints}
+            ></polyline>
+            <polyline class="chart__line chart__line--up" points={upPoints}
+            ></polyline>
+          </svg>
         </div>
 
-        <div class="legend">
-          <span class="legend__item"
-            ><i class="sw is-verified"></i>Verified</span
-          >
-          <span class="legend__item"><i class="sw is-flight"></i>In flight</span
-          >
-          <span class="legend__item"
-            ><i class="sw is-empty"></i>Not requested</span
-          >
-          <span class="legend__note">
-            Every region is held by between <span class="num">1</span>{" "}
-            and <span class="num">9</span> connected peers.
-          </span>
+        <div class="stats">
+          {
+            dockStats.map((s) => (
+              <span class="dstat">
+                <span class="dstat__l">{s.label}</span>
+                <span class="num dstat__v">{s.value}</span>
+              </span>
+            ))
+          }
         </div>
       </div>
     </div>
@@ -323,58 +548,40 @@ const motion = rows.map((r) => ({
 
 <script is:inline define:vars={{ motion }}>
   /*
-   * Brings the mock to life at 1 Hz — the app's own telemetry rate.
+   * Brings the replica to life at 1 Hz — the app's own telemetry rate.
    *
-   * The point is not decoration. A torrent client is a live instrument, and
-   * every competitor shows theirs as a still photograph. Ticking the figures
-   * at the rate the real app ticks them also demonstrates the reason every
-   * number is set in tabular figures: the columns do not move as digits
-   * change. With a proportional face this would jitter once a second, which is
-   * precisely the argument.
+   * Not decoration. Every competitor shows their client as a still
+   * photograph; ticking the figures at the rate the real app ticks them also
+   * demonstrates why every number is set in tabular figures, because the
+   * columns do not move as the digits change.
    *
-   * Three rules keep it from being obnoxious:
-   *   - `prefers-reduced-motion` stops it before it starts, leaving the
-   *     rendered-at-build-time state on screen. That state is complete and
-   *     correct on its own; the animation is strictly additive.
-   *   - It runs only while the window is actually on screen, via
-   *     IntersectionObserver. Scrolling past it costs nothing.
-   *   - Rates random-walk around their starting value rather than being
-   *     redrawn at random, so they read as a measurement rather than noise.
+   * Stops before it starts under `prefers-reduced-motion`, leaving the
+   * build-time render on screen — that state is complete on its own. Runs only
+   * while on screen. Rates random-walk around their starting value so they
+   * read as a measurement rather than as noise.
    */
   (function () {
     const root = document.querySelector("[data-app]");
     if (!root) return;
-
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const rows = Array.from(root.querySelectorAll("[data-row]"));
     const cells = Array.from(root.querySelectorAll("[data-strip] .cell"));
     const dht = root.querySelector("[data-dht]");
     const verified = root.querySelector("[data-verified]");
+    const downloaded = root.querySelector("[data-downloaded]");
+    const remaining = root.querySelector("[data-remaining]");
+    const totalDown = root.querySelector("[data-total-down]");
+    const totalUp = root.querySelector("[data-total-up]");
 
-    /** Live state per row, seeded from what the server rendered. */
-    const state = motion.map((m) => ({
-      ...m,
-      // Rates are held in bytes/sec so the walk and the formatting agree.
-      downBps: parseRate(m.down),
-      upBps: parseRate(m.up),
-    }));
-
-    let pieceCount = 2847;
-
-    /** `"6.6 MB/s"` back to bytes per second. */
     function parseRate(text) {
-      const value = parseFloat(text);
-      if (!Number.isFinite(value)) return 0;
-      if (text.includes("MB")) return value * 1e6;
-      if (text.includes("KB")) return value * 1e3;
-      return value;
+      const v = parseFloat(text);
+      if (!Number.isFinite(v)) return 0;
+      if (text.includes("MB")) return v * 1e6;
+      if (text.includes("KB")) return v * 1e3;
+      return v;
     }
 
-    /**
-     * The app's `formatSpeed`: one decimal, and MB/s held down to 0.1 so a
-     * rate column reads as a single unit rather than switching per row.
-     */
     function formatSpeed(bps) {
       if (!Number.isFinite(bps) || bps <= 0) return "0 B/s";
       if (bps >= 100000) {
@@ -385,118 +592,132 @@ const motion = rows.map((r) => ({
       return `${Math.round(bps)} B/s`;
     }
 
-    /** The app's `formatDuration`: `1 h 07 min`, `2 min 30 s`, `45 s`. */
-    function formatDuration(seconds) {
-      const s = Math.max(0, Math.round(seconds));
-      if (s >= 3600) {
-        const h = Math.floor(s / 3600);
-        return `${h} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} min`;
-      }
+    function formatBytes(bytes) {
+      const units = ["B", "KB", "MB", "GB"];
+      const e = Math.min(Math.floor(Math.log(bytes) / Math.log(1000)), 3);
+      const v = bytes / 1000 ** e;
+      return `${v.toFixed(v < 10 ? 2 : v < 100 ? 1 : 0)} ${units[e]}`;
+    }
+
+    function formatDuration(s) {
+      s = Math.max(0, Math.round(s));
+      if (s >= 3600)
+        return `${Math.floor(s / 3600)} h ${String(Math.floor((s % 3600) / 60)).padStart(2, "0")} min`;
       if (s >= 60)
         return `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;
       return `${s} s`;
     }
 
-    /** A bounded random walk, so a rate drifts rather than jumping. */
     function walk(value, base, spread) {
       const next = value + (Math.random() - 0.5) * base * spread;
       return Math.min(base * 1.35, Math.max(base * 0.55, next));
     }
 
+    const TOTAL = 5.7e9;
+    const state = motion.map((m) => ({
+      ...m,
+      downBps: parseRate(m.down),
+      upBps: parseRate(m.up),
+    }));
+    let percent = 61;
+
     function tick() {
+      let sumDown = 0;
+      let sumUp = 0;
+
       state.forEach((row, i) => {
         const el = rows[i];
         if (!el) return;
 
         if (row.gain > 0) {
-          row.percent = Math.min(99.4, row.percent + row.gain);
-
-          const fill = el.querySelector(".fill");
-          if (fill) fill.style.width = `${row.percent}%`;
-
-          const pct = el.querySelector(".row__pct");
-          if (pct) pct.textContent = `${Math.floor(row.percent)}%`;
+          const pct = Math.min(
+            99.4,
+            parseFloat(el.querySelector(".fill").style.width) + row.gain,
+          );
+          el.querySelector(".fill").style.width = `${pct}%`;
+          el.querySelector(".row__pct").textContent = `${Math.floor(pct)}%`;
+          if (i === 0) percent = pct;
         }
 
         if (row.downBps > 0)
           row.downBps = walk(row.downBps, parseRate(row.down), 0.22);
         if (row.upBps > 0) row.upBps = walk(row.upBps, parseRate(row.up), 0.3);
+        sumDown += row.downBps;
+        sumUp += row.upBps;
 
         const rates = el.querySelectorAll(".row__rate");
         if (rates[0] && row.downBps > 0)
           rates[0].textContent = formatSpeed(row.downBps);
         if (rates[1] && row.upBps > 0)
           rates[1].textContent = formatSpeed(row.upBps);
-
-        // The meta line's ETA is recomputed from the rate actually showing,
-        // so the sentence and the column never contradict each other.
-        const detail = el.querySelector(".row__detail");
-        if (detail && row.gain > 0 && row.downBps > 0) {
-          const remaining = ((100 - row.percent) / row.gain) * 1;
-          const peers = detail.textContent.match(/(\d+) peers/);
-          detail.textContent =
-            `${Math.floor(row.percent)}% · ${formatDuration(remaining)} left` +
-            (peers ? ` · ${peers[1]} peers` : "");
-        }
       });
 
-      // The strip is driven by the selected torrent's progress rather than
-      // ticking on its own. Left to promote a few cells a second it saturates
-      // in about a minute — a full strip sitting above a bar reading 63%,
-      // and a legend with no in-flight or not-requested cells left to point
-      // at. Deriving the target from the percentage keeps the two halves of
-      // the same picture telling the same story.
-      const lead = state[0];
-      const target = Math.round((lead.percent / 100) * cells.length);
-      let verifiedNow = cells.filter((c) =>
-        c.classList.contains("is-verified"),
-      ).length;
+      if (totalDown) totalDown.textContent = formatSpeed(sumDown);
+      if (totalUp) totalUp.textContent = formatSpeed(sumUp);
 
-      while (verifiedNow < target) {
+      // The meta line's ETA is recomputed from the rate actually on screen, so
+      // the sentence and the column can never contradict each other.
+      const lead = rows[0];
+      if (lead) {
+        const left = ((100 - percent) / state[0].gain) * 1;
+        lead.querySelector(".row__detail").textContent =
+          `${Math.floor(percent)}% · ${formatDuration(left)} left`;
+      }
+
+      if (downloaded)
+        downloaded.textContent = formatBytes((percent / 100) * TOTAL);
+      if (remaining)
+        remaining.textContent = formatBytes((1 - percent / 100) * TOTAL);
+
+      // The strip is driven by the selected torrent's progress rather than
+      // ticking on its own. Left to promote cells freely it saturates in about
+      // a minute, leaving a full strip above a bar reading 63% and a legend
+      // with no in-flight or not-requested cells left to point at.
+      const target = Math.round((percent / 100) * cells.length);
+      let now = cells.filter((c) => c.classList.contains("is-verified")).length;
+      while (now < target) {
         const flight = cells.filter((c) => c.classList.contains("is-flight"));
         const pool = flight.length
           ? flight
           : cells.filter((c) => c.classList.contains("is-empty"));
         if (!pool.length) break;
-
-        const cell = pool[Math.floor(Math.random() * pool.length)];
-        cell.className = "cell is-verified";
-        verifiedNow += 1;
+        pool[Math.floor(Math.random() * pool.length)].className =
+          "cell is-verified";
+        now += 1;
       }
 
-      // A steady pool of in-flight requests, so the middle band of the legend
-      // always has something on screen to refer to.
-      const flightNow = cells.filter((c) =>
+      const flying = cells.filter((c) =>
         c.classList.contains("is-flight"),
       ).length;
       const empty = cells.filter((c) => c.classList.contains("is-empty"));
-      for (let n = flightNow; n < 9 && empty.length; n++) {
+      for (let n = flying; n < 9 && empty.length; n++) {
         const i = Math.floor(Math.random() * empty.length);
         empty[i].className = "cell is-flight";
         empty.splice(i, 1);
       }
 
-      pieceCount = Math.round((lead.percent / 100) * 4668);
-      if (verified) verified.textContent = pieceCount.toLocaleString();
-      if (dht) dht.textContent = String(210 + Math.floor(Math.random() * 12));
+      if (verified)
+        verified.textContent = Math.round(
+          (percent / 100) * 4668,
+        ).toLocaleString();
+      if (dht)
+        dht.textContent = (
+          1010 + Math.floor(Math.random() * 16)
+        ).toLocaleString();
     }
 
     let timer = null;
-
-    const observer = new IntersectionObserver(
+    new IntersectionObserver(
       (entries) => {
         const visible = entries.some((e) => e.isIntersecting);
-        if (visible && timer === null) {
-          timer = window.setInterval(tick, 1000);
-        } else if (!visible && timer !== null) {
+        if (visible && timer === null) timer = window.setInterval(tick, 1000);
+        else if (!visible && timer !== null) {
           window.clearInterval(timer);
           timer = null;
         }
       },
       { threshold: 0.08 },
-    );
-
-    observer.observe(root);
+    ).observe(root);
   })();
 </script>
 
@@ -510,151 +731,334 @@ const motion = rows.map((r) => ({
       0 1px 0 rgba(255, 255, 255, 0.04) inset,
       0 24px 70px -30px rgba(0, 0, 0, 0.72),
       0 8px 24px -14px rgba(0, 0, 0, 0.5);
+    /* The mock is a picture of a desktop app, not body copy: its own type
+       scale is the app's 13px, independent of the site's larger ramp. */
     font-size: 13px;
     line-height: 1.45;
-    /* The mock is a picture of a desktop app, not body copy. Its own type
-       scale is the app's, independent of the site's larger ramp. */
     letter-spacing: normal;
   }
 
-  /* ---- title bar ---- */
-  .app__bar {
+  .app svg {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ── title bar ── */
+  .bar {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    height: 38px;
-    padding-inline: 13px;
+    gap: 0.875rem;
+    height: 44px;
+    /* 88px is the inset the real title bar reserves for the traffic lights. */
+    padding-left: 88px;
+    padding-right: 14px;
+    position: relative;
     background: var(--bg-1);
     border-bottom: 1px solid var(--line);
   }
 
-  .app__dots {
+  .lights {
+    position: absolute;
+    left: 14px;
     display: flex;
-    gap: 6px;
+    gap: 8px;
   }
 
-  .app__dots i {
-    width: 10px;
-    height: 10px;
+  .lights i {
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: var(--bg-3);
   }
 
-  .app__title {
+  .bar__name {
     font-size: 12px;
-    font-weight: 600;
-    color: var(--fg-1);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    color: var(--fg-2);
   }
 
-  .app__status {
+  .bar__rates {
     margin-left: auto;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
-    color: var(--fg-3);
+    font-size: 11.5px;
+    color: var(--fg-1);
   }
 
-  .app__dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--ok);
+  .bar__dl {
+    color: var(--chart-down);
+    display: inline-flex;
+  }
+  .bar__ul {
+    color: var(--chart-up);
+    display: inline-flex;
+    margin-left: 8px;
   }
 
-  .app__body {
+  /* ── shell ── */
+  .body {
     display: grid;
-    grid-template-columns: 176px minmax(0, 1fr);
+    grid-template-columns: 248px minmax(0, 1fr);
   }
 
-  /* ---- rail ---- */
   .rail {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    padding: 12px 10px;
     background: var(--bg-1);
     border-right: 1px solid var(--line);
   }
 
-  .rail__item {
+  .rail__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 16px 14px 10px;
+  }
+
+  .rail__brand {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 9px;
+  }
+
+  .mark {
+    color: var(--acc);
+    flex: none;
+  }
+
+  .rail__word {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  .rail__health {
+    width: 6px;
+    height: 6px;
+    margin-left: 2px;
+    border-radius: 50%;
+    background: var(--ok);
+  }
+
+  .search {
+    position: relative;
+    display: flex;
+    align-items: center;
     height: var(--h-control);
-    padding-inline: 10px;
-    border-radius: var(--r-md);
-    color: var(--fg-2);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--bg-2);
+  }
+
+  .search__icon {
+    position: absolute;
+    left: 9px;
+    display: inline-flex;
+    color: var(--fg-3);
+  }
+
+  .search__input {
+    padding-left: 30px;
+    font-size: 12.5px;
+    color: var(--fg-3);
+  }
+
+  .search__key {
+    position: absolute;
+    right: 7px;
+    padding: 2px 5px;
+    border: 1px solid var(--line-2);
+    border-radius: 3px;
+    font-size: 10px;
+    color: var(--fg-3);
+  }
+
+  .views {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    padding: 6px 8px;
+  }
+
+  .views__label {
+    padding: 14px 6px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  .view {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    height: var(--h-control);
+    padding-inline: 8px;
+    border-radius: var(--r-sm);
+    color: var(--fg-1);
+  }
+
+  .view.is-current {
+    background: var(--bg-3);
+    color: var(--fg-0);
+  }
+
+  .view__icon {
+    display: inline-flex;
+    flex: none;
+    opacity: 0.85;
+  }
+
+  .view__name {
+    flex: 1;
     font-size: 12.5px;
   }
 
-  .rail__item.is-current {
-    background: var(--bg-3);
-    color: var(--fg-0);
-    font-weight: 500;
-  }
-
-  .rail__count {
+  .view__count {
     font-size: 11px;
     color: var(--fg-3);
   }
 
-  .rail__spacer {
-    flex: 1;
-    min-height: 18px;
+  .view.is-current .view__count {
+    color: var(--fg-1);
   }
 
-  .rail__add {
+  .net {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--line);
+  }
+
+  .net__row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--fg-2);
+  }
+
+  .net__dot {
+    width: 5px;
+    height: 5px;
+    flex: none;
+    border-radius: 50%;
+    background: var(--ok);
+  }
+
+  /* ── toolbar ── */
+  .main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: 56px;
+    flex: none;
+    padding-inline: 18px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .toolbar__title {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .toolbar__count {
+    font-size: 12px;
+    color: var(--fg-3);
+  }
+
+  .toolbar__spacer {
+    flex: 1;
+  }
+
+  .chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chip {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 5px;
+    height: var(--h-chip);
+    padding-inline: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-sm);
+    background: var(--bg-1);
+    font-size: 12px;
+    color: var(--fg-1);
+    white-space: nowrap;
+  }
+
+  .chip.is-on {
+    background: var(--acc-deep);
+    border-color: var(--acc-dim);
+    color: var(--acc);
+  }
+
+  .chip--icon {
+    padding-inline: 8px;
+  }
+
+  .add {
+    display: inline-flex;
+    align-items: center;
     gap: 6px;
-    height: var(--h-control);
+    height: var(--h-primary);
+    padding-inline: 12px;
     border-radius: var(--r-md);
     background: var(--acc);
     color: var(--on-acc);
     font-size: 12.5px;
     font-weight: 600;
+    white-space: nowrap;
   }
 
-  /* ---- list ---- */
-  .list__head {
-    display: flex;
+  /* ── list ── */
+  .cols,
+  .row {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) 180px 86px 86px 74px 108px;
     align-items: center;
     gap: 16px;
-    height: 30px;
     padding-inline: 18px;
+  }
+
+  .cols {
+    height: 30px;
     border-bottom: 1px solid var(--line);
-    color: var(--fg-3);
     font-size: 10px;
     font-weight: 600;
     letter-spacing: 0.07em;
     text-transform: uppercase;
+    color: var(--fg-3);
   }
 
-  .list__h--name {
-    flex: 1;
-    /* Clears the 18px ring plus its 16px gap so the header sits over the
-       column it names rather than over the status glyph. */
-    margin-left: 34px;
+  .col--name {
+    grid-column: 2;
   }
-  .list__h--prog {
-    width: 180px;
-  }
-  .list__h--rate {
-    width: 86px;
+  .col--rate {
     text-align: right;
-  }
-  .list__h--health {
-    width: 96px;
   }
 
   .row {
-    display: flex;
-    align-items: center;
-    gap: 16px;
     height: 58px;
-    padding-inline: 18px;
     border-bottom: 1px solid var(--line);
   }
 
@@ -663,16 +1067,15 @@ const motion = rows.map((r) => ({
     box-shadow: inset 2px 0 0 var(--acc);
   }
 
-  .row__ring {
+  .ring {
     position: relative;
     display: grid;
     place-items: center;
     width: 18px;
     height: 18px;
-    flex: none;
   }
 
-  .row__ring::before {
+  .ring::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -681,13 +1084,13 @@ const motion = rows.map((r) => ({
     opacity: 0.36;
   }
 
-  .row__ring.is-downloading {
+  .ring.is-downloading {
     color: var(--acc);
   }
-  .row__ring.is-seeding {
+  .ring.is-seeding {
     color: var(--ok);
   }
-  .row__ring.is-paused {
+  .ring.is-paused {
     color: var(--fg-3);
   }
 
@@ -695,7 +1098,6 @@ const motion = rows.map((r) => ({
     display: flex;
     flex-direction: column;
     gap: 2px;
-    flex: 1;
     min-width: 0;
   }
 
@@ -712,13 +1114,13 @@ const motion = rows.map((r) => ({
     display: flex;
     align-items: center;
     gap: 7px;
+    min-width: 0;
     font-size: 11px;
     color: var(--fg-2);
-    min-width: 0;
   }
 
-  /* "5.70 GB" is one value. Letting it break after the number turns a size
-     into two lines of nonsense on a narrow screen. */
+  /* "5.70 GB" is one value; breaking after the number turns a size into two
+     lines of nonsense on a narrow screen. */
   .row__meta .num {
     white-space: nowrap;
   }
@@ -737,8 +1139,6 @@ const motion = rows.map((r) => ({
     display: flex;
     align-items: center;
     gap: 9px;
-    width: 180px;
-    flex: none;
   }
 
   .track {
@@ -776,8 +1176,6 @@ const motion = rows.map((r) => ({
   }
 
   .row__rate {
-    width: 86px;
-    flex: none;
     text-align: right;
     font-size: 12px;
     color: var(--chart-down);
@@ -793,12 +1191,13 @@ const motion = rows.map((r) => ({
     color: var(--fg-3);
   }
 
-  .row__health {
-    width: 96px;
-    flex: none;
+  .row__peers {
+    text-align: right;
+    font-size: 11.5px;
+    color: var(--fg-2);
   }
 
-  .chip {
+  .hchip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -810,47 +1209,79 @@ const motion = rows.map((r) => ({
     white-space: nowrap;
   }
 
-  .chip__dot {
+  .hchip__dot {
     width: 6px;
     height: 6px;
+    flex: none;
     border-radius: 50%;
     background: currentColor;
-    flex: none;
   }
 
-  .chip.is-healthy,
-  .chip.is-seeding {
+  .hchip.is-healthy,
+  .hchip.is-seeding {
     color: var(--ok);
   }
-  .chip.is-thin {
+  .hchip.is-thin {
     color: var(--warn);
     background: color-mix(in srgb, var(--warn) 15%, transparent);
   }
-  .chip.is-none {
+  .hchip.is-none {
     color: var(--err);
     background: color-mix(in srgb, var(--err) 15%, transparent);
   }
-  .chip.is-idle {
+  .hchip.is-idle {
     color: var(--fg-3);
   }
 
-  /* ---- piece map ---- */
+  /* ── expanded row ── */
   .detail {
-    padding: 16px 18px 18px;
-    background: var(--bg-1);
-  }
-
-  .detail__head {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    margin-bottom: 11px;
+    flex-direction: column;
+    gap: 14px;
+    padding: 16px 18px 16px 52px;
+    background: var(--bg-1);
+    border-bottom: 1px solid var(--line);
   }
 
-  .detail__count {
-    font-size: 11px;
+  .detail__top {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 14px 28px;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .stat__l {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
     color: var(--fg-3);
+    white-space: nowrap;
+  }
+
+  .stat__v {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .stat__v--path {
+    font-family: var(--font-ui);
+    font-size: 12.5px;
+    color: var(--fg-1);
+  }
+
+  .detail__acts {
+    margin-left: auto;
+    display: flex;
+    flex: none;
+    gap: 6px;
   }
 
   .strip {
@@ -862,7 +1293,7 @@ const motion = rows.map((r) => ({
   .strip--avail {
     height: 16px;
     align-items: flex-end;
-    margin-top: 7px;
+    margin-top: -7px;
   }
 
   .cell {
@@ -881,13 +1312,16 @@ const motion = rows.map((r) => ({
     background: var(--bg-3);
   }
 
-  .bar {
+  /* `abar`, not `bar`: the title bar above already owns `.bar`, and the later
+     rule was winning — which painted the title bar accent-blue and gave every
+     availability bar a 44px height and an 88px left inset. */
+  .abar {
     flex: 1;
     border-radius: 1px;
     background: var(--acc-dim);
   }
 
-  .bar.is-zero {
+  .abar.is-zero {
     background: var(--err);
   }
 
@@ -895,12 +1329,12 @@ const motion = rows.map((r) => ({
     display: flex;
     align-items: center;
     gap: 14px;
-    margin-top: 11px;
+    margin-top: -4px;
     font-size: 11px;
     color: var(--fg-2);
   }
 
-  .legend__item {
+  .legend__i {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -910,6 +1344,7 @@ const motion = rows.map((r) => ({
     width: 9px;
     height: 9px;
     border-radius: 2px;
+    flex: none;
   }
 
   .sw.is-verified {
@@ -921,48 +1356,251 @@ const motion = rows.map((r) => ({
   .sw.is-empty {
     background: var(--bg-3);
   }
+  .sw.is-down {
+    background: var(--chart-down);
+  }
+  .sw.is-up {
+    background: var(--chart-up);
+  }
 
   .legend__note {
+    margin-left: auto;
+    color: var(--err);
+  }
+
+  .detail__bottom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 36px;
+  }
+
+  .detail__h {
+    margin-bottom: 7px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  .contrib {
+    min-width: 210px;
+  }
+
+  .contrib__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding-block: 2px;
+    font-size: 11.5px;
+    color: var(--fg-1);
+  }
+
+  .contrib__v {
+    color: var(--chart-down);
+  }
+
+  .note {
+    display: flex;
+    gap: 9px;
+    flex: 1;
+    min-width: 260px;
+    padding: 11px 13px;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-0);
+  }
+
+  .note__icon {
+    color: var(--ok);
+    flex: none;
+    margin-top: 1px;
+  }
+
+  .note__body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 11.5px;
+    color: var(--fg-2);
+  }
+
+  .note__body strong {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--fg-0);
+  }
+
+  /* ── dock ── */
+  .dock {
+    display: flex;
+    align-items: stretch;
+    min-height: 116px;
+    background: var(--bg-1);
+    border-top: 1px solid var(--line);
+  }
+
+  .chart {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 20px 10px;
+  }
+
+  .chart__head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 11px;
+    color: var(--fg-1);
+  }
+
+  .chart__label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  .chart__key {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .chart__peak {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     margin-left: auto;
     color: var(--fg-3);
   }
 
-  /* ---- narrowing ---- */
+  .rule {
+    display: block;
+    width: 10px;
+    height: 1px;
+    background: var(--fg-3);
+  }
+
+  .chart__svg {
+    display: block;
+    width: 100%;
+    height: 60px;
+  }
+
+  .chart__line {
+    fill: none;
+    stroke-width: 1.6;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .chart__line--down {
+    stroke: var(--chart-down);
+  }
+  .chart__line--up {
+    stroke: var(--chart-up);
+  }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+    align-content: center;
+    gap: 10px 18px;
+    flex: 0 0 460px;
+    padding: 14px 22px;
+    border-left: 1px solid var(--line);
+  }
+
+  .dstat {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .dstat__l {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dstat__v {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* ── narrowing ──
+     The chart is the first thing to go, exactly as in the app: below about
+     1024px the rail plus a readable stat grid already fills the row, and a
+     squeezed chart stops being readable before the numbers do. */
+  @media (max-width: 1080px) {
+    .chart {
+      display: none;
+    }
+    .stats {
+      flex: 1;
+    }
+  }
+
   @media (max-width: 900px) {
-    .app__body {
+    .body {
       grid-template-columns: minmax(0, 1fr);
     }
     .rail {
       display: none;
     }
+    .detail__bottom {
+      gap: 20px;
+    }
   }
 
-  @media (max-width: 720px) {
-    .row__rate,
-    .list__h--rate {
+  @media (max-width: 780px) {
+    .cols,
+    .row {
+      grid-template-columns: 18px minmax(0, 1fr) 130px 86px 108px;
+    }
+    .col--rate:last-of-type,
+    .col--peers,
+    .row__rate.is-up,
+    .row__peers {
       display: none;
     }
-    .row__prog,
-    .list__h--prog {
-      width: 120px;
+    .detail {
+      padding-left: 18px;
     }
   }
 
   @media (max-width: 560px) {
+    .cols,
+    .row {
+      grid-template-columns: 18px minmax(0, 1fr) 92px;
+    }
+    .col--rate,
+    .col--health,
+    .row__rate,
     .row__health,
-    .list__h--health,
+    .row__pct,
     .legend__note {
       display: none;
     }
-    .row__prog,
-    .list__h--prog {
-      width: 88px;
-    }
-    .row__pct {
+    .toolbar__count,
+    .chips {
       display: none;
     }
-    .detail__count {
-      display: none;
+    .detail__top {
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .detail__acts {
+      margin-left: 0;
     }
   }
 </style>

@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Check and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          # .nvmrc is the single source for the Node version, as in the app
+          # repo. Astro 7 refuses to run below 22.12 and says so, but only
+          # after an install has already happened.
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck and format
+        run: npm run check
+
+      - name: Build
+        # The release fetch is deliberately not authenticated here. An
+        # unauthenticated build is the one that has to keep working — it is
+        # what Sevalla runs — and it must produce a site whether GitHub answers
+        # with a release, a 404, or a rate limit. If this step is green, the
+        # fallback path is green.
+        run: npm run build
+
+      - name: Confirm the build produced pages
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -f dist/download/index.html
+          test -f dist/docs/index.html
+          test -f dist/sitemap-index.xml
+          echo "Pages built: $(find dist -name '*.html' | wc -l | tr -d ' ')"
+
+      - name: Check for words glued together by markup
+        run: npm run check:spacing
+
+  fixture:
+    name: Build with a release present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      # The live API returns nothing useful until 1.0 is tagged, so the branch
+      # that renders actual downloads would otherwise never be exercised. The
+      # fixture's filenames are the ones release.yml's bundlers emit, which
+      # makes this a real test of the asset classifier rather than a mock
+      # written to agree with it.
+      - name: Build against the release fixture
+        env:
+          FLUME_FAKE_RELEASE: "1"
+        run: npm run build
+
+      - name: Confirm every platform rendered
+        env:
+          FLUME_FAKE_RELEASE: "1"
+        run: |
+          set -euo pipefail
+          for os in macos windows linux; do
+            grep -q "data-os=\"$os\"" dist/download/index.html \
+              || { echo "::error::$os section missing from the download page"; exit 1; }
+          done
+          # Signatures and checksums must not be offered as installers.
+          if grep -q '\.sig' dist/download/index.html; then
+            echo "::error::a .sig asset leaked onto the download page"; exit 1
+          fi
+          echo "All three platform sections rendered, no non-installer assets."

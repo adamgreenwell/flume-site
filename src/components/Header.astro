@@ -8,6 +8,7 @@ const links = [
   { href: "/download/", label: "Download" },
   { href: "/docs/", label: "Docs" },
   { href: "/changelog/", label: "Changelog" },
+  { href: "/contribute/", label: "Contribute" },
 ];
 
 /** A link is current when the path is inside its section, not only equal. */
@@ -121,7 +122,8 @@ const isCurrent = (href: string) => path === href || path.startsWith(href);
    */
   @media (max-width: 640px) {
     .header__link--ext,
-    .header__link[href="/changelog/"] {
+    .header__link[href="/changelog/"],
+    .header__link[href="/contribute/"] {
       display: none;
     }
 

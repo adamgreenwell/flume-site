@@ -1,0 +1,57 @@
+Flume website
+Copyright 2026 Adam Greenwell
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+
+--------------------------------------------------------------------------------
+BRAND ASSETS ARE NOT COVERED BY THE LICENSE
+--------------------------------------------------------------------------------
+
+The Apache-2.0 grant above covers the source of this website. It does NOT grant
+any right to use the Flume name or the Flume logo.
+
+Specifically excluded:
+
+    brand/                     the logo master
+    public/logo.png            derived logo
+    public/favicon-32.png      derived logo
+    public/apple-touch-icon.png
+    public/og.png              contains the logo and wordmark
+
+All rights in these are reserved.
+
+You are welcome to fork this repository, read it, learn from it, and reuse the
+code. Please replace the mark and the name before publishing the result, so
+that nobody arrives at your copy believing it is Flume. This is the ordinary
+distinction between an open-source licence, which covers copyright in code, and
+a project's identity, which it needs to keep in order to mean anything.
+
+If you want to refer to Flume — a review, a comparison, a packaging listing,
+writing about it — you do not need permission. Nominative use is fine.
+
+--------------------------------------------------------------------------------
+THIRD-PARTY ASSETS
+--------------------------------------------------------------------------------
+
+Fonts in public/fonts/ are vendored and are not the author's work:
+
+    Instrument Sans    SIL Open Font License 1.1
+                       https://github.com/Instrument/instrument-sans
+
+    IBM Plex Mono      SIL Open Font License 1.1
+                       https://github.com/IBM/plex
+
+Both remain under the OFL; that licence travels with the files and is not
+superseded by the Apache-2.0 grant above.
+
+Documentation under src/content/docs/ is generated. Its source is the docs/
+directory of https://github.com/adamgreenwell/flume, also Apache-2.0.

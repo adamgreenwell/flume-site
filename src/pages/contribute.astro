@@ -1,0 +1,497 @@
+---
+import Base from "../layouts/Base.astro";
+
+const REPO = "https://github.com/adamgreenwell/flume";
+
+/**
+ * The architecture rules, verbatim from CONTRIBUTING.md in the app repo.
+ *
+ * Reproduced rather than linked because they are the thing most likely to get
+ * a first pull request rejected, and someone deciding whether to spend an
+ * evening on this deserves to read them before they start rather than after.
+ */
+const rules = [
+  {
+    title: "No torrent binary data over IPC",
+    body: "librqbit writes pieces to disk. The webview receives JSON only — progress, speeds, counts, file lists. This is the architecture's central claim, and everything else follows from it.",
+  },
+  {
+    title: "The engine layer imports no Tauri types",
+    body: "src-tauri/src/engine/ must compile and be testable under plain cargo test. If a change makes the engine need Tauri, the change is in the wrong layer.",
+  },
+  {
+    title: "Command handlers are thin",
+    body: "Logic worth testing belongs in the engine, where it can be tested without a webview or a mock runtime.",
+  },
+  {
+    title: "Static export only",
+    body: "No app/api routes, no middleware, no server-only functions. Everything reaches the backend through invoke, because there is no server to reach.",
+  },
+  {
+    title: "Telemetry stays around 1 Hz, batched",
+    body: "No per-piece events. The payload should scale with torrent count, never with piece count or file size.",
+  },
+  {
+    title: "Shared types change together",
+    body: "A serde struct in Rust and its TypeScript mirror in src/lib/ipc/types.ts change in the same commit. Not the next one.",
+  },
+  {
+    title: "Minimal Tauri permissions",
+    body: "Grant only what a feature needs. The shell plugin is not to be added without a discussion.",
+  },
+  {
+    title: "Verdicts the data cannot support are not invented",
+    body: "Where the engine reports nothing, the interface says so. A plausible number is worse than an honest blank, and the swarm verdicts exist precisely to hold that line.",
+  },
+];
+
+const ways = [
+  {
+    label: "Run it on Windows or Linux",
+    body: "Flume is developed on macOS. CI builds for every platform, but first-run behaviour on the others has never had a manual pass. This is the single most useful thing anyone can do right now, and it needs no Rust.",
+    href: `${REPO}/issues/new/choose`,
+    cta: "Report what you find",
+  },
+  {
+    label: "Improve the documentation",
+    body: "Everything you can read here lives in docs/ in the app repo, and is mirrored to both this site and the wiki from there. Fix it once, at the source.",
+    href: `${REPO}/tree/main/docs`,
+    cta: "Browse docs/",
+  },
+  {
+    label: "Pick up an issue",
+    body: "Issues carry the context needed to start. Anything blocked on an upstream decision says so, so you do not spend an evening on something that cannot land.",
+    href: `${REPO}/issues`,
+    cta: "Open issues",
+  },
+  {
+    label: "Work on this website",
+    body: "Separate repository, Astro, no Rust required. The design rules are written down and the quality gate is two commands.",
+    href: "https://github.com/adamgreenwell/flume-site",
+    cta: "Site repository",
+  },
+];
+---
+
+<Base
+  title="Contribute"
+  description="How to build Flume from source, the architecture rules a change is held to, and where to start."
+>
+  <section class="wrap head">
+    <p class="eyebrow">Contribute</p>
+    <h1 class="head__title">It builds in four commands.</h1>
+    <p class="lead head__lead">
+      Flume is Apache-2.0 and developed in the open. The engine is a dependency
+      rather than a project, so almost everything worth doing is in the part
+      people actually touch.
+    </p>
+  </section>
+
+  <section class="wrap section">
+    <div class="split">
+      <div>
+        <h2 class="section__title">Building from source</h2>
+        <p class="body">
+          You need Rust 1.88 or later, Node 26, and your platform's Tauri system
+          dependencies. The development setup page lists those per platform — on
+          Debian and Ubuntu there are a handful of <span class="num">-dev</span> packages.
+        </p>
+        <pre
+          class="code"><code>git clone {REPO}.git
+cd flume
+npm install
+npm run tauri:dev</code></pre>
+        <p class="body">
+          Before opening a pull request, run the same gate CI runs. It is not a
+          formality — a red gate is the most common reason a change sits.
+        </p>
+        <pre
+          class="code"><code>npm run check
+cd src-tauri
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test</code></pre>
+        <p class="note">
+          Tests needing more than a checkout are <span class="num"
+            >#[ignore]</span
+          >d. A failure under <span class="num">--ignored</span> is not automatically
+          a regression: the DHT tests want working internet, and the proxy test wants
+          a SOCKS5 proxy on <span class="num">127.0.0.1:1080</span>. Each one's
+          ignore reason names its own prerequisite.
+        </p>
+      </div>
+
+      <aside class="aside">
+        <h2 class="eyebrow">Workflow</h2>
+        <ol class="steps">
+          <li>Branch from <span class="num">main</span>.</li>
+          <li>
+            Small, frequent commits, in{" "}
+            <a href="https://www.conventionalcommits.org" rel="noopener"
+              >Conventional Commits</a
+            > form.
+          </li>
+          <li>Open a pull request; CI runs the full gate.</li>
+          <li>Merge when green.</li>
+        </ol>
+        <p class="aside__note">
+          History is treated as a deliverable rather than bookkeeping. A commit
+          message that explains why a change was made is worth more than one
+          that restates the diff.
+        </p>
+      </aside>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <p class="eyebrow">Where to start</p>
+      <h2 class="section__title">Four things that would genuinely help.</h2>
+      <ul class="ways">
+        {
+          ways.map((way) => (
+            <li class="way">
+              <h3 class="way__title">{way.label}</h3>
+              <p class="way__body">{way.body}</p>
+              <a class="way__link" href={way.href} rel="noopener">
+                {way.cta} →
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </section>
+
+  <section class="wrap section">
+    <p class="eyebrow">Non-negotiable</p>
+    <h2 class="section__title">Eight rules a change is held to.</h2>
+    <p class="section__lead">
+      These are not style preferences. Violating one is a design defect, and a
+      review will ask you to change it — so they are written down here rather
+      than discovered in a pull request.
+    </p>
+
+    <ol class="rules">
+      {
+        rules.map((rule, i) => (
+          <li class="rule">
+            <span class="num rule__n">{String(i + 1).padStart(2, "0")}</span>
+            <div>
+              <h3 class="rule__title">{rule.title}</h3>
+              <p class="rule__body">{rule.body}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    <p class="section__caveat">
+      The interface has its own vocabulary, and it is equally firm: never
+      introduce a colour that is not a token, status is never colour alone, and
+      every number that sits in a column is set in tabular monospace. The{" "}
+      <a href="/docs/design-system/">design system</a> is the rulebook.
+    </p>
+  </section>
+
+  <section class="wrap section">
+    <div class="cards">
+      <div class="card">
+        <h2 class="card__title">Reporting a security issue</h2>
+        <p class="card__body">
+          Please do not open a public issue. Use GitHub's private reporting on
+          the Security tab. Note that some things people report are properties
+          of BitTorrent rather than bugs — peers can see your IP, and DHT
+          announces that you are in a swarm. The policy says which is which.
+        </p>
+        <a
+          class="card__link"
+          href={`${REPO}/blob/main/SECURITY.md`}
+          rel="noopener"
+        >
+          Security policy →
+        </a>
+      </div>
+      <div class="card">
+        <h2 class="card__title">Code of Conduct</h2>
+        <p class="card__body">
+          The Contributor Covenant, and it is enforced. Everyone taking part —
+          issues, pull requests, discussions — is held to it.
+        </p>
+        <a
+          class="card__link"
+          href={`${REPO}/blob/main/CODE_OF_CONDUCT.md`}
+          rel="noopener"
+        >
+          Read it →
+        </a>
+      </div>
+      <div class="card">
+        <h2 class="card__title">What Flume will not do</h2>
+        <p class="card__body">
+          No cryptocurrency, no chat, no RSS automation, no paid tier, and no
+          second CLI — <span class="num">rqbit</span> already exists. A proposal in
+          those directions will be declined, so the roadmap says so in advance.
+        </p>
+        <a class="card__link" href="/docs/roadmap/">Roadmap →</a>
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .head {
+    padding-top: clamp(2.5rem, 1rem + 5vw, 4.5rem);
+  }
+
+  .head__title {
+    margin-top: 0.75rem;
+    font-size: var(--t-display);
+  }
+
+  .head__lead {
+    margin-top: 1rem;
+    max-width: 60ch;
+  }
+
+  .section {
+    margin-top: clamp(3rem, 1.5rem + 5vw, 5rem);
+  }
+
+  .section__title {
+    font-size: var(--t-title);
+    margin-top: 0.9rem;
+  }
+
+  .section__lead {
+    margin-top: 1rem;
+    color: var(--fg-1);
+    max-width: 62ch;
+  }
+
+  .section__caveat {
+    margin-top: 2.25rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+    color: var(--fg-2);
+    font-size: var(--t-small);
+    max-width: 74ch;
+  }
+
+  .section__caveat a {
+    color: var(--acc);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .band {
+    margin-top: clamp(3rem, 1.5rem + 5vw, 5rem);
+    padding-block: clamp(2.5rem, 1.5rem + 4vw, 4rem);
+    border-block: 1px solid var(--line);
+    background: var(--bg-1);
+  }
+
+  /* ---- build ---- */
+  .split {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    gap: clamp(2rem, 1rem + 4vw, 3.5rem);
+    align-items: start;
+  }
+
+  .body {
+    margin-top: 1.1rem;
+    color: var(--fg-1);
+    max-width: 58ch;
+  }
+
+  .code {
+    margin: 1.1rem 0 0;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--bg-1);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: var(--t-small);
+    line-height: 1.7;
+    color: var(--fg-1);
+  }
+
+  .note {
+    margin-top: 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+    color: var(--fg-2);
+    font-size: var(--t-small);
+    max-width: 58ch;
+  }
+
+  .aside {
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .steps {
+    margin: 1rem 0 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.6rem;
+    font-size: var(--t-small);
+    color: var(--fg-1);
+  }
+
+  .steps::marker,
+  .steps li::marker {
+    color: var(--fg-3);
+  }
+
+  .steps a {
+    color: var(--acc);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .aside__note {
+    margin-top: 1.25rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--line);
+    color: var(--fg-2);
+    font-size: var(--t-micro);
+  }
+
+  /* ---- ways ---- */
+  .ways {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 2rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .way {
+    padding: 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-0);
+  }
+
+  .way__title {
+    font-size: 1.02rem;
+    letter-spacing: -0.014em;
+  }
+
+  .way__body {
+    margin-top: 0.55rem;
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  .way__link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--acc);
+    font-size: var(--t-small);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .way__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* ---- rules ---- */
+  .rules {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 2.5rem;
+    margin: 2rem 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: rule;
+  }
+
+  .rule {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: start;
+  }
+
+  .rule__n {
+    font-size: var(--t-micro);
+    font-weight: 600;
+    color: var(--acc-dim);
+    padding-top: 0.2em;
+  }
+
+  .rule__title {
+    font-size: 0.98rem;
+    letter-spacing: -0.012em;
+  }
+
+  .rule__body {
+    margin-top: 0.4rem;
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  /* ---- cards ---- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .card {
+    padding: 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .card__title {
+    font-size: 1.02rem;
+    letter-spacing: -0.014em;
+  }
+
+  .card__body {
+    margin-top: 0.6rem;
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  .card__link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--acc);
+    font-size: var(--t-small);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .card__link:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  @media (max-width: 900px) {
+    .split,
+    .rules {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .cards {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 640px) {
+    .ways {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

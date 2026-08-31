@@ -143,26 +143,38 @@ Option 2 is the right one if this matters; option 1 is what is in force today.
 own folder. Both `/download` and `/download/` return 200 as it stands, so the
 redirect Pretty URLs would add is not needed.
 
-**Error file must be `404.html` — and only that.**
+**Leave Index file and Error file alone.** Sevalla's documentation is explicit
+that both are single-page-application settings: they route all navigation
+through one file. Setting **Error file** to `404.html` on this multi-page site
+was tried and changed nothing, before and after a redeploy — the response still
+carried Sevalla's own `svid` header, so it was their edge answering rather than
+anything cached in front of it.
 
-There is a custom 404 page now (`src/pages/404.astro`, emitted as
-`dist/404.html`), but Sevalla does not pick it up on its own. Set **Error file**
-to `404.html` under Settings → Build. Until that is done, a wrong URL returns
-the correct 404 _status_ with Kinsta's generic grey page rather than ours.
+Pointing **Index file** at `index.html` is worse than useless here. That is the
+SPA behaviour: it would serve the home page under every wrong URL with a `200`,
+telling search engines each of them is a real page.
 
-Do **not** put `index.html` there. That is the single-page-app setting: it would
-serve the home page under every wrong URL with a `200`, telling search engines
-each of them is a real page.
+**The custom 404 comes from `_redirects` instead**, with the standard catch-all:
 
-Check it with:
-
-```bash
-curl -sI https://flume.adamgreenwell.com/definitely-not-a-page | head -1
-curl -s  https://flume.adamgreenwell.com/definitely-not-a-page | grep -o '<title>[^<]*'
+```
+/*    /404.html    404
 ```
 
-The status must stay `404`. The title should read `Page not found — Flume`; if
-it reads `Page not found - 404`, the setting has not been applied.
+It has to be the last rule, because the first match wins and this one matches
+everything. It is deliberately **not** forced — without the bang a rule only
+applies when no file exists at that path, so every real page still serves
+itself and only genuine misses fall through, with a `404` status rather than a
+`200`.
+
+Check both halves after any change to that file, because a forced catch-all
+would silently swallow the whole site:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://flume.adamgreenwell.com/download/
+curl -s https://flume.adamgreenwell.com/definitely-not-a-page | grep -o '<title>[^<]*'
+```
+
+The first must be `200`. The second must read `Page not found — Flume`.
 
 ## Note on the private repository
 

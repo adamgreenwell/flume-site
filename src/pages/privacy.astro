@@ -1,0 +1,281 @@
+---
+import Base from "../layouts/Base.astro";
+
+/**
+ * The privacy page.
+ *
+ * Written from what the site actually loads rather than from a template. The
+ * external hosts were read out of the built HTML — `googletagmanager.com` and
+ * the self-hosted Umami, and nothing else; the fonts are the five `.woff2`
+ * files served from this domain, so there is no Google Fonts request to
+ * disclose.
+ *
+ * It says plainly that there is no consent banner. That is a real decision
+ * with real implications in some jurisdictions, and a privacy page that
+ * quietly omits it is worse than one that states it. Nothing here is legal
+ * advice and it deliberately claims no compliance with any particular regime.
+ */
+const UPDATED = "31 August 2026";
+---
+
+<Base
+  title="Privacy"
+  description="What this website collects, what the Flume application does not, and what BitTorrent itself exposes."
+>
+  <section class="wrap head">
+    <p class="eyebrow">Privacy</p>
+    <h1 class="head__title">What this site collects.</h1>
+    <p class="lead head__lead">
+      Short version: two analytics tools on the website, nothing in the
+      application, and no way to send us anything about yourself even if you
+      wanted to.
+    </p>
+    <p class="updated">Last updated {UPDATED}</p>
+  </section>
+
+  <div class="wrap prose-page">
+    <section class="block">
+      <h2>The website</h2>
+      <p>
+        Two analytics tools run on these pages, and they are the only things
+        here that load from anywhere other than this domain.
+      </p>
+
+      <div class="tools">
+        <div class="tool">
+          <h3>Google Analytics 4</h3>
+          <p>
+            Property <span class="num">G-KNGWP21KK5</span>. It <strong
+              >sets cookies</strong
+            > and sends page views, along with the usual coarse details — approximate
+            location from your IP address, browser, device type, and the page you
+            came from — to Google, where Google's own{" "}
+            <a href="https://policies.google.com/privacy" rel="noopener"
+              >privacy policy</a
+            > applies.
+          </p>
+        </div>
+
+        <div class="tool">
+          <h3>Umami, self-hosted</h3>
+          <p>
+            Runs on a server we control. It is <strong>cookieless</strong> and records
+            page views without building a profile that follows you between sites.
+            Nothing it collects is shared with anyone.
+          </p>
+        </div>
+      </div>
+
+      <p>
+        Both are there on purpose rather than by accident. Google Analytics is
+        blocked by a large share of the people who read a page like this, so
+        running a self-hosted tool alongside it is the only way to know how much
+        the first one is missing. The gap between the two numbers is the
+        measurement.
+      </p>
+
+      <p class="note">
+        <strong>There is no cookie banner.</strong> Google Analytics sets cookies
+        and you are not asked first. That is worth stating rather than burying: if
+        you would rather not be counted, any content blocker stops it, and Firefox
+        and Safari block it by default.
+      </p>
+
+      <h3>What is not here</h3>
+      <ul>
+        <li>
+          <strong>No forms, accounts, or newsletter.</strong> There is nothing on
+          this site you can submit, so there is nothing for us to store.
+        </li>
+        <li>
+          <strong>No third-party fonts.</strong> The five font files are served from
+          this domain, so no request goes to Google Fonts or any other host.
+        </li>
+        <li>
+          <strong>No advertising, and nothing sold or shared.</strong>
+        </li>
+      </ul>
+
+      <p>
+        The site is hosted on Sevalla and served through Cloudflare, both of
+        which keep ordinary server logs of requests. Downloads are served by
+        GitHub, so following a download link is a request to GitHub and their
+        policy covers it.
+      </p>
+    </section>
+
+    <section class="block">
+      <h2>The application</h2>
+      <p>
+        Flume itself sends us nothing. There is no analytics library in it, no
+        automatic update check, and no account — verified in the source, which
+        is <a href="https://github.com/adamgreenwell/flume" rel="noopener"
+          >public</a
+        > if you would rather check than take our word for it.
+      </p>
+      <p>
+        It is not silent on the network, because a torrent client cannot be. It
+        talks to trackers, to peers, and to the distributed hash table. It does
+        not talk to us.
+      </p>
+    </section>
+
+    <section class="block">
+      <h2>What BitTorrent exposes</h2>
+      <p>
+        This part is not about Flume, and no client can change it. It is worth
+        saying anyway.
+      </p>
+      <ul>
+        <li>
+          <strong>Peers can see your IP address.</strong> That is how the protocol
+          works — peers connect to each other directly. Anyone in a swarm can record
+          who else is in it.
+        </li>
+        <li>
+          <strong>DHT announces that you are in a swarm.</strong> You can turn it
+          off in Settings; magnet links stop working when you do.
+        </li>
+        <li>
+          <strong
+            >Flume can route peer connections through a SOCKS5 proxy</strong
+          >, which changes what peers see. It routes peer traffic and is not a
+          general-purpose anonymity tool. If anonymity is your threat model, a
+          torrent client is not the control you are looking for.
+        </li>
+      </ul>
+    </section>
+
+    <section class="block">
+      <h2>Questions</h2>
+      <p>
+        Email <a href="mailto:adamgreenwell@gmail.com"
+          >adamgreenwell@gmail.com</a
+        >, or open an issue on{" "}
+        <a href="https://github.com/adamgreenwell/flume-site" rel="noopener"
+          >the repository for this site</a
+        >. If something on this page is wrong or out of date, that is a bug and
+        it will be fixed.
+      </p>
+      <p class="note">
+        This page describes what happens. It is not legal advice and it does not
+        claim compliance with any particular regulation.
+      </p>
+    </section>
+  </div>
+</Base>
+
+<style>
+  .head {
+    padding-top: clamp(2.5rem, 1rem + 5vw, 4.5rem);
+  }
+
+  .head__title {
+    margin-top: 0.75rem;
+    font-size: var(--t-display);
+  }
+
+  .head__lead {
+    margin-top: 1rem;
+    max-width: 60ch;
+  }
+
+  .updated {
+    margin-top: 1rem;
+    font-size: var(--t-micro);
+    color: var(--fg-3);
+  }
+
+  /* The measure goes on the sections, not on the `.wrap` element. Narrowing
+     the wrap itself leaves its `margin-inline: auto` centring the result, which
+     indented the whole body away from the heading above it. */
+  .prose-page {
+    display: grid;
+    gap: clamp(2.5rem, 1.5rem + 3vw, 3.5rem);
+    margin-top: clamp(2.5rem, 1.5rem + 3vw, 3.5rem);
+  }
+
+  .block {
+    max-width: 78ch;
+  }
+
+  .block h2 {
+    padding-bottom: 0.9rem;
+    border-bottom: 1px solid var(--line);
+    font-size: var(--t-title);
+  }
+
+  .block h3 {
+    margin-top: 1.75rem;
+    font-size: 1.02rem;
+    letter-spacing: -0.014em;
+  }
+
+  .block p {
+    margin-top: 1rem;
+    color: var(--fg-1);
+  }
+
+  .block ul {
+    margin-top: 1rem;
+    padding-left: 1.35rem;
+    display: grid;
+    gap: 0.6rem;
+    color: var(--fg-1);
+  }
+
+  .block li::marker {
+    color: var(--fg-3);
+  }
+
+  .block strong {
+    color: var(--fg-0);
+    font-weight: 600;
+  }
+
+  .block a {
+    color: var(--acc);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+
+  .tool {
+    padding: 1.25rem 1.3rem 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .tool h3 {
+    margin-top: 0;
+    font-size: 1rem;
+  }
+
+  .tool p {
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  .note {
+    margin-top: 1.5rem !important;
+    padding: 0.9rem 1.1rem;
+    border: 1px solid color-mix(in oklab, var(--warn) 35%, transparent);
+    border-radius: var(--r-lg);
+    background: color-mix(in oklab, var(--warn) 8%, transparent);
+    font-size: var(--t-small);
+    color: var(--fg-1) !important;
+  }
+
+  @media (max-width: 640px) {
+    .tools {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

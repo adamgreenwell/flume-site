@@ -1,0 +1,158 @@
+---
+import Base from "../layouts/Base.astro";
+
+/**
+ * The not-found page.
+ *
+ * Astro emits this as `dist/404.html`. Sevalla does not pick that up on its
+ * own — the site's **Error file** setting has to name it, and that field was
+ * deliberately left blank until now because the obvious value to put there is
+ * `index.html`, which is the single-page-app answer: it would serve the home
+ * page under every wrong URL with a 200 and tell search engines each of them
+ * is a real page.
+ *
+ * The links below are the four things someone who mistyped a URL might
+ * actually have wanted, and `/docs` is called out because it moved: every path
+ * under it now 301s to the wiki, so anyone landing here from an old deep link
+ * followed a redirect that could not find its page.
+ */
+const links = [
+  {
+    href: "/download/",
+    label: "Download Flume",
+    hint: "macOS, Windows, Linux",
+  },
+  {
+    href: "https://github.com/adamgreenwell/flume/wiki",
+    label: "Documentation",
+    hint: "Moved to the GitHub Wiki",
+    external: true,
+  },
+  {
+    href: "/changelog/",
+    label: "Changelog",
+    hint: "Every release, with notes",
+  },
+  {
+    href: "https://github.com/adamgreenwell/flume/issues",
+    label: "Report a problem",
+    hint: "Including a broken link on this site",
+    external: true,
+  },
+];
+---
+
+<Base
+  title="Page not found"
+  description="That page does not exist on flume.adamgreenwell.com."
+>
+  <section class="wrap nf">
+    <p class="eyebrow">404</p>
+    <h1 class="nf__title">That page isn't here.</h1>
+    <p class="lead nf__lead">
+      Either it never was, or it moved and something still points at the old
+      address. If you followed a link on this site, that is a bug worth
+      reporting.
+    </p>
+
+    <ul class="nf__links">
+      {
+        links.map((link) => (
+          <li>
+            <a
+              class="nf__link"
+              href={link.href}
+              rel={link.external ? "noopener" : undefined}
+            >
+              <span class="nf__label">
+                {link.label}
+                {link.external && (
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M6.5 3.5H12.5V9.5M12.5 3.5 4 12" />
+                  </svg>
+                )}
+              </span>
+              <span class="nf__hint">{link.hint}</span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .nf {
+    padding-block: clamp(3rem, 1.5rem + 6vw, 6rem) clamp(2rem, 1rem + 4vw, 4rem);
+  }
+
+  .nf__title {
+    margin-top: 0.75rem;
+    font-size: var(--t-display);
+  }
+
+  .nf__lead {
+    margin-top: 1rem;
+    max-width: 56ch;
+  }
+
+  .nf__links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 2.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    max-width: 46rem;
+  }
+
+  .nf__link {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    height: 100%;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+    text-decoration: none;
+    transition:
+      border-color 0.14s ease,
+      background-color 0.14s ease;
+  }
+
+  .nf__link:hover {
+    border-color: var(--line-2);
+    background: var(--bg-2);
+  }
+
+  .nf__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: var(--t-small);
+    font-weight: 600;
+    color: var(--fg-0);
+  }
+
+  .nf__hint {
+    font-size: var(--t-micro);
+    color: var(--fg-2);
+  }
+
+  @media (max-width: 560px) {
+    .nf__links {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

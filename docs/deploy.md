@@ -112,27 +112,52 @@ repo, which pushes nothing here — so that case needs something explicit.
 
 **Sevalla static sites have no "deploy hook" URL.** The Settings page offers
 Source, Auto-deploy, Git LFS, Deploy paths, PR previews, Build strategy and
-Pretty URLs, and nothing else; the earlier version of this document described a
-Deploy hooks section that does not exist. `release.yml` in the app repo still
-has a step that POSTs to `SEVALLA_DEPLOY_HOOK`. That secret is unset, so the
-step prints "No SEVALLA_DEPLOY_HOOK configured; skipping site rebuild" and
-exits zero — harmless, but it is wired to a mechanism this platform does not
-provide.
+Pretty URLs, and nothing else. Their API confirms it: there are
+`deployment-hook` endpoints under `/v3/applications`, and no equivalent under
+`/v3/static-sites`. An earlier version of this document described a Deploy
+hooks section that does not exist.
 
-Three real options, in order of how much they cost to set up:
+**`release.yml` in the app repo calls the API instead**, in its `notify-site`
+job:
 
-1. **Do nothing.** The next push to `flume-site` rebuilds and picks the release
-   up. In practice the site is usually touched around a release anyway. The
-   download page is stale until then.
-2. **The official GitHub Action**, [`sevalla-hosting/sevalla-deploy`][action].
-   Needs a Sevalla API token as a repo secret, plus the static site's ID —
-   which is on the Settings page under Details: `6cade71a-c6ce-4f69-8ef3-e082a74e2039`.
-   Replace the `SEVALLA_DEPLOY_HOOK` step with it.
-3. **An empty commit** pushed to `flume-site` from `release.yml`, which trips
-   auto-deploy. No API token, but it needs write access to this repo from the
-   app repo's workflow and it puts noise in the history.
+```
+POST https://api.sevalla.com/v3/static-sites/{id}/deployments
+Authorization: Bearer $SEVALLA_API_TOKEN
+{"branch":"main"}
+```
 
-Option 2 is the right one if this matters; option 1 is what is in force today.
+Two things it needs, both already in place:
+
+| What                | Where it lives                                                                         |
+| ------------------- | -------------------------------------------------------------------------------------- |
+| `SEVALLA_API_TOKEN` | A repo secret on **`adamgreenwell/flume`** — where the workflow runs, not on this repo |
+| The static site ID  | Hardcoded in the step: `6cade71a-c6ce-4f69-8ef3-e082a74e2039`, from Settings → Details |
+
+Create the key at [app.sevalla.com/api-keys](https://app.sevalla.com/api-keys)
+and scope it to deploy only; Sevalla's own documentation recommends a
+deploy-only key for CI. The value is shown once.
+
+It is deliberately not the official [`sevalla-hosting/sevalla-deploy`][action]
+action. That action's static-site path is a thin wrapper around exactly this
+request, and `flume` is public, so a plain `curl` is one fewer third party
+holding a token that can deploy.
+
+The step never fails the release — a stale website is a warning, not a reason to
+red a green build — and it skips silently when the secret is unset, so forks are
+unaffected. `401`, `403` and `404` are reported separately because each has a
+different fix: a revoked token, a key without the deploy capability, and a wrong
+site ID.
+
+**Checking it ran.** The `notify-site` job's log prints the status code. To
+confirm from the outside, compare the version on the download page against the
+newest release:
+
+```bash
+curl -s https://flume.adamgreenwell.com/download/ | grep -o 'Version <strong[^>]*>[^<]*' | sed 's/.*>//'
+```
+
+If it lags after a release, deploy manually from the Sevalla dashboard and read
+the job log for the warning saying why.
 
 [action]: https://github.com/sevalla-hosting/sevalla-deploy
 

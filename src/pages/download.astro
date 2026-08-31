@@ -182,6 +182,17 @@ const buildBlock = `<code>${buildSteps.replace(
               aria-labelledby={`h-${group.os}`}
             >
               <div class="platform__head">
+                {/*
+                  Rendered here rather than created by the script. Astro scopes
+                  component styles with a `data-astro-cid-*` attribute added at
+                  build time, so an element made with document.createElement
+                  never matches its own rule — the badge appeared, correctly
+                  worded and completely unstyled. Shipping it hidden and
+                  unhiding it keeps the styling where it can be seen.
+                */}
+                <p class="platform__yours" hidden>
+                  Looks like you're on {group.label}
+                </p>
                 <h2 class="platform__title" id={`h-${group.os}`}>
                   {group.label}
                 </h2>
@@ -191,12 +202,19 @@ const buildBlock = `<code>${buildSteps.replace(
               {group.assets.length ? (
                 <ul class="assets">
                   {group.assets.map((asset, i) => (
-                    <li class:list={["asset", i === 0 && "is-primary"]}>
+                    <li
+                      class:list={["asset", i === 0 && "is-primary"]}
+                      data-arch={asset.arch}
+                      data-format={asset.format}
+                    >
                       <a class="asset__link" href={asset.url}>
                         <span class="asset__main">
                           <span class="asset__format">{asset.format}</span>
                           <span class="asset__arch">
                             {archLabel[asset.arch]}
+                          </span>
+                          <span class="asset__best" hidden>
+                            Best for your machine
                           </span>
                         </span>
                         <span class="asset__blurb">{asset.blurb}</span>
@@ -305,21 +323,47 @@ const buildBlock = `<code>${buildSteps.replace(
     platform detection cannot name, still sees every download.
   -->
   <script>
-    import { detect, osLabel } from "../lib/platform";
+    import { detect } from "../lib/platform";
 
     const guess = await detect();
     if (guess.os) {
-      const target = document.querySelector(`[data-os="${guess.os}"]`);
+      const section = document.querySelector(`[data-os="${guess.os}"]`);
       const container = document.querySelector(".platforms");
 
-      if (target && container) {
-        target.classList.add("is-yours");
-        container.prepend(target);
+      if (section && container) {
+        section.classList.add("is-yours");
+        container.prepend(section);
 
-        const badge = document.createElement("p");
-        badge.className = "platform__yours";
-        badge.textContent = `Looks like you're on ${osLabel(guess.os)}`;
-        target.querySelector(".platform__head")?.prepend(badge);
+        section.querySelector(".platform__yours")?.removeAttribute("hidden");
+
+        /*
+         * Marking one file is only honest when the architecture is actually
+         * known. On macOS that is free — one universal build, nothing to get
+         * wrong. Elsewhere it depends on a Chromium-only hint, and when that
+         * comes back null the section is still promoted while every
+         * architecture stays equally weighted, because the alternative is
+         * pointing a Windows-on-ARM visitor at an x64 installer that will not
+         * run.
+         *
+         * The first match in document order is the one marked: assets are
+         * already sorted by format rank, so it is the format the blurbs call
+         * the standard installer rather than the managed-deployment one.
+         */
+        const assets = [...section.querySelectorAll(".asset")];
+        const match = guess.arch
+          ? assets.find((a) => a.dataset.arch === guess.arch)
+          : null;
+
+        if (match) {
+          match.classList.add("is-yours");
+          match.querySelector(".asset__best")?.removeAttribute("hidden");
+
+          // The others stay legible and clickable — someone downloading for a
+          // different machine is a normal thing to be doing.
+          assets
+            .filter((a) => a !== match)
+            .forEach((a) => a.classList.add("is-other"));
+        }
       }
     }
   </script>
@@ -481,6 +525,34 @@ const buildBlock = `<code>${buildSteps.replace(
 
   .asset.is-primary .asset__link {
     border-color: var(--acc-dim);
+  }
+
+  /* Applied at runtime, so it has to beat `.is-primary` above — the build-time
+     lead of a section is not necessarily the file this visitor wants. */
+  .asset.is-yours .asset__link {
+    border-color: var(--acc);
+    background: var(--acc-deep);
+  }
+
+  .asset__best {
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--r-sm);
+    background: var(--acc);
+    color: var(--on-acc);
+    font-size: var(--t-micro);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* Dimmed, never hidden. Downloading for another machine is a normal thing to
+     be doing, and a link you cannot find is worse than one you must read past. */
+  .asset.is-other .asset__link {
+    opacity: 0.62;
+  }
+
+  .asset.is-other .asset__link:hover {
+    opacity: 1;
   }
 
   .asset__main {

@@ -62,40 +62,65 @@ export function osFromUserAgent(ua: string): Os | null {
 }
 
 /**
+ * Reads the architecture from the high-entropy client hints.
+ *
+ * Chromium only. Safari and Firefox have both declined to ship
+ * `userAgentData`, and this is the one fact the classic user-agent string
+ * cannot supply: an Apple Silicon Mac reports `MacIntel`, and Windows on ARM
+ * reports an x64 UA deliberately so that x64 downloads keep working. Sniffing
+ * it produces a confidently wrong answer, and for a 6 MB installer a wrong
+ * answer is one that will not run.
+ *
+ * So this asks the only source that actually knows, and returns `null`
+ * everywhere else rather than guessing.
+ *
+ * @param uad - The `userAgentData` object, when the browser has one.
+ * @returns The architecture, or `null` if it cannot be established.
+ */
+async function archFromHints(uad: UserAgentData): Promise<Arch | null> {
+  try {
+    const hints = await uad.getHighEntropyValues(["architecture"]);
+    if (hints.architecture === "arm") return "arm64";
+    if (hints.architecture === "x86") return "x64";
+  } catch {
+    // The call can reject — a permissions policy, or a Chromium old enough to
+    // lack the hint. Not knowing is a supported outcome.
+  }
+  return null;
+}
+
+/**
  * Determines the visitor's platform, to promote one download card.
  *
- * TODO(you): implement this. The OS half is straightforward — call
- * {@link osFromUserAgent}, and prefer `userAgentData()!.platform` when it
- * exists since it is a clean token rather than a string to be sniffed.
+ * The OS half is reliable. `userAgentData.platform` is a clean token where it
+ * exists; otherwise {@link osFromUserAgent} matches on strings that have been
+ * stable for fifteen years and returns `null` for anything ambiguous.
  *
- * The architecture half is the real decision, and it is a product call rather
- * than a technical one:
+ * The architecture half is deliberately partial, and that is the honest shape
+ * rather than a compromise:
  *
- *   - `navigator.userAgent` cannot answer it. An Apple Silicon Mac reports
- *     `MacIntel`, and Windows on ARM reports an x64 UA in most browsers,
- *     specifically so that x64 downloads keep working. Sniffing it produces a
- *     confidently wrong answer, which for a 30 MB installer means a download
- *     that simply will not run.
- *   - `userAgentData.getHighEntropyValues(["architecture"])` does answer it,
- *     accurately, but it is async and Chromium-only — so Safari and Firefox
- *     visitors get nothing from it.
- *   - macOS does not need it either way: Flume ships one universal `.dmg`.
+ *   - **macOS never asks.** Flume ships one universal `.dmg`, so there is no
+ *     choice to get wrong and no reason to pay for an async round trip.
+ *   - **Chromium is asked properly**, via {@link archFromHints}.
+ *   - **Everyone else gets `null`**, and the page shows both architectures for
+ *     their OS — one extra decision, rather than a wrong download.
  *
- * So the choice is roughly: return `arch: null` always and let the Windows and
- * Linux cards show both architectures side by side (honest, one extra decision
- * for the visitor); or make {@link detect} async, await the high-entropy hint
- * where it exists, and fall back to `null` elsewhere (better for most Windows
- * visitors, more moving parts, and a brief flash before the promotion lands).
- *
- * The return type already allows either, and `download.astro` awaits the
- * result, so going async is a change to this function alone — mark it `async`
- * and nothing else has to move.
+ * Async because the hints API is. Nothing waits on it: the page is complete
+ * when it renders, and this only reorders and labels afterwards.
  *
  * @returns The visitor's platform, with `null` for anything not established.
  */
-export function detect(): Guess | Promise<Guess> {
-  // TODO(you): 5–10 lines. Return `{ os, arch }`.
-  return { os: null, arch: null };
+export async function detect(): Promise<Guess> {
+  const uad = userAgentData();
+
+  const os = uad
+    ? (osFromUserAgent(uad.platform) ?? osFromUserAgent(navigator.userAgent))
+    : osFromUserAgent(navigator.userAgent);
+
+  if (os === null) return { os: null, arch: null };
+  if (os === "macos") return { os, arch: "universal" };
+
+  return { os, arch: uad ? await archFromHints(uad) : null };
 }
 
 /**

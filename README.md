@@ -30,8 +30,9 @@ visitor nothing at runtime. The build never fails on a GitHub outage — it fall
 back to linking the releases page.
 
 Because it is resolved at build time, **publishing a release does not update the
-site on its own**. `.github/workflows/release.yml` in the app repo pings a
-Sevalla deploy hook after a release is published; see `docs/deploy.md`.
+site on its own**. `.github/workflows/site-deploy.yml` in the app repo calls
+Sevalla's API when a release is _published_ — publishing the draft, not pushing
+the tag, is what deploys the site. See `docs/deploy.md`.
 
 > `FLUME_FAKE_RELEASE=1` (in `.env` or the environment) renders a fixture
 > instead of calling the API. It mirrors `v1.0.0-rc.1` — a pre-release whose

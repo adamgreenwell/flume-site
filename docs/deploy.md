@@ -117,8 +117,7 @@ Pretty URLs, and nothing else. Their API confirms it: there are
 `/v3/static-sites`. An earlier version of this document described a Deploy
 hooks section that does not exist.
 
-**`release.yml` in the app repo calls the API instead**, in its `notify-site`
-job:
+**`site-deploy.yml` in the app repo calls the API instead:**
 
 ```
 POST https://api.sevalla.com/v3/static-sites/{id}/deployments
@@ -126,38 +125,89 @@ Authorization: Bearer $SEVALLA_API_TOKEN
 {"branch":"main"}
 ```
 
-Two things it needs, both already in place:
+`branch` is required. Omitting the body is a `400`, not a default-branch deploy.
+
+### It listens for `published`, and that is the whole point
+
+The obvious place for this is the tag-build workflow, and that is wrong.
+`release.yml` runs on a `v*` tag and creates a **draft** release deliberately,
+so installers can be smoke-tested per OS before anyone downloads them. The site
+cannot see drafts: `src/lib/releases.ts` filters them out, and `/releases/latest`
+excludes them by definition.
+
+Deploying at the end of the tag build therefore rebuilds the site against the
+_previous_ version, and then nothing fires when the draft is actually published
+— the one moment the download page changes has no trigger on it. This was built
+that way first and had to be moved.
+
+So the trigger is the release event, not the tag:
+
+| Event       | Why it is listened for                                                  |
+| ----------- | ----------------------------------------------------------------------- |
+| `published` | The draft becomes visible to the API. This is the one that matters.     |
+| `edited`    | Unticking pre-release promotes a version the site displays differently. |
+| `deleted`   | Otherwise the download buttons point at assets that no longer exist.    |
+
+**Publishing the draft is what deploys the site.** Pushing the tag does not.
+
+### The token
 
 | What                | Where it lives                                                                         |
 | ------------------- | -------------------------------------------------------------------------------------- |
 | `SEVALLA_API_TOKEN` | A repo secret on **`adamgreenwell/flume`** — where the workflow runs, not on this repo |
 | The static site ID  | Hardcoded in the step: `6cade71a-c6ce-4f69-8ef3-e082a74e2039`, from Settings → Details |
 
-Create the key at [app.sevalla.com/api-keys](https://app.sevalla.com/api-keys)
-and scope it to deploy only; Sevalla's own documentation recommends a
-deploy-only key for CI. The value is shown once.
+Create the key at [app.sevalla.com/api-keys](https://app.sevalla.com/api-keys).
+Sevalla models permissions as `RESOURCE:ACTION` pairs and recommends a
+deploy-only key for CI, which is what this should be. The value is shown once.
+
+**Grant it the static-site deploy permission explicitly.** A key created
+without it still authenticates, so the failure is a `403` and not a `401` —
+the token looks fine and the deploy silently does not happen. That is what
+happened on the first real run here.
 
 It is deliberately not the official [`sevalla-hosting/sevalla-deploy`][action]
 action. That action's static-site path is a thin wrapper around exactly this
 request, and `flume` is public, so a plain `curl` is one fewer third party
 holding a token that can deploy.
 
-The step never fails the release — a stale website is a warning, not a reason to
-red a green build — and it skips silently when the secret is unset, so forks are
-unaffected. `401`, `403` and `404` are reported separately because each has a
-different fix: a revoked token, a key without the deploy capability, and a wrong
-site ID.
+The step never fails the workflow — a stale website is a warning, not a reason
+to red a green build — and it skips silently when the secret is unset, so forks
+are unaffected. The failures are reported separately because each has a
+different fix:
 
-**Checking it ran.** The `notify-site` job's log prints the status code. To
-confirm from the outside, compare the version on the download page against the
-newest release:
+| Code  | Meaning                           | Fix                             |
+| ----- | --------------------------------- | ------------------------------- |
+| `2xx` | Deployment queued                 | —                               |
+| `401` | Token wrong or revoked            | Rotate `SEVALLA_API_TOKEN`      |
+| `403` | Valid token, no deploy capability | Grant the permission on the key |
+| `404` | No static site with that ID       | Check Settings → Details        |
+
+On a `403` the step also prints the key's effective capabilities from
+`/v3/api-keys/me` — any valid key may read its own — so the next failure names
+what the key has rather than only what it lacks. Permission names only; never
+the token.
+
+### Deploying by hand
+
+`site-deploy.yml` also has `workflow_dispatch`, which is both a manual rebuild
+button and the only way to test the token without cutting a release:
+
+```bash
+gh workflow run site-deploy.yml -R adamgreenwell/flume --ref main
+```
+
+### Checking it ran
+
+The job log prints the status code. To confirm from the outside, compare the
+version on the download page against the newest release:
 
 ```bash
 curl -s https://flume.adamgreenwell.com/download/ | grep -o 'Version <strong[^>]*>[^<]*' | sed 's/.*>//'
 ```
 
-If it lags after a release, deploy manually from the Sevalla dashboard and read
-the job log for the warning saying why.
+If it lags after a release, check that the release is **published** rather than
+still a draft, then read the job log for the warning saying why.
 
 [action]: https://github.com/sevalla-hosting/sevalla-deploy
 

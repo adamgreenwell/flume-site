@@ -143,11 +143,26 @@ Option 2 is the right one if this matters; option 1 is what is in force today.
 own folder. Both `/download` and `/download/` return 200 as it stands, so the
 redirect Pretty URLs would add is not needed.
 
-**Error file is deliberately blank.** Pointing it at `index.html` is the SPA
-setting, and on a multi-page site it would serve the home page under every
-wrong URL with a 200 — telling search engines each of them is a real page.
-Blank means `/no-such-page` returns a real 404. There is no custom 404 page in
-the site yet; adding `src/pages/404.astro` would give one.
+**Error file must be `404.html` — and only that.**
+
+There is a custom 404 page now (`src/pages/404.astro`, emitted as
+`dist/404.html`), but Sevalla does not pick it up on its own. Set **Error file**
+to `404.html` under Settings → Build. Until that is done, a wrong URL returns
+the correct 404 _status_ with Kinsta's generic grey page rather than ours.
+
+Do **not** put `index.html` there. That is the single-page-app setting: it would
+serve the home page under every wrong URL with a `200`, telling search engines
+each of them is a real page.
+
+Check it with:
+
+```bash
+curl -sI https://flume.adamgreenwell.com/definitely-not-a-page | head -1
+curl -s  https://flume.adamgreenwell.com/definitely-not-a-page | grep -o '<title>[^<]*'
+```
+
+The status must stay `404`. The title should read `Page not found — Flume`; if
+it reads `Page not found - 404`, the setting has not been applied.
 
 ## Note on the private repository
 

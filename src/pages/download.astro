@@ -349,7 +349,9 @@ const buildBlock = `<code>${buildSteps.replace(
          * already sorted by format rank, so it is the format the blurbs call
          * the standard installer rather than the managed-deployment one.
          */
-        const assets = [...section.querySelectorAll(".asset")];
+        // `querySelectorAll` is typed to `Element`, which has no `dataset` — the
+        // generic is what makes `data-arch` readable rather than a cast.
+        const assets = [...section.querySelectorAll<HTMLElement>(".asset")];
         const match = guess.arch
           ? assets.find((a) => a.dataset.arch === guess.arch)
           : null;

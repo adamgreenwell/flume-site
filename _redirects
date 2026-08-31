@@ -55,3 +55,22 @@
 # wiki, lands on the wiki home rather than a 404.
 /docs                            https://github.com/adamgreenwell/flume/wiki                         301!
 /docs/*                          https://github.com/adamgreenwell/flume/wiki                         301!
+
+# ── custom 404 ──────────────────────────────────────────────────────────────
+#
+# Sevalla's "Error file" build setting does not do this. Its documentation is
+# explicit that Index file and Error file are for single-page applications —
+# they route all navigation through one file — and setting Error file on a
+# multi-page site was verified to change nothing, even after a redeploy. The
+# SPA route is also the one to avoid: it serves the home page under every wrong
+# URL with a 200 and tells search engines each of them is real.
+#
+# This rule is the Netlify idiom and Sevalla honours the same file. It must be
+# LAST, because the first match wins and it matches everything.
+#
+# Deliberately NOT forced. Without the bang a rule only applies when no file
+# exists at that path, so every real page still serves itself and only genuine
+# misses fall through here — with a 404 status rather than a 200, which is the
+# whole point.
+/*                               /404.html                                    404
+

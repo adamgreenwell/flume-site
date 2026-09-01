@@ -1,25 +1,31 @@
 ---
 import Base from "../layouts/Base.astro";
-import { latestRelease, formatBytes, type Os } from "../lib/releases";
+import { latestRelease, type Os } from "../lib/releases";
+import AssetList from "../components/AssetList.astro";
 
 const release = await latestRelease();
 
 /** Display order and copy for each platform section. */
-const platforms: { os: Os; label: string; requires: string }[] = [
-  { os: "macos", label: "macOS", requires: "macOS 12 Monterey or later" },
-  { os: "windows", label: "Windows", requires: "Windows 10 or 11" },
+const platforms: { os: Os; label: string; requires: string; slug: string }[] = [
+  {
+    os: "macos",
+    label: "macOS",
+    requires: "macOS 12 Monterey or later",
+    slug: "mac",
+  },
+  {
+    os: "windows",
+    label: "Windows",
+    requires: "Windows 10 or 11",
+    slug: "windows",
+  },
   {
     os: "linux",
     label: "Linux",
     requires: "Debian 12+, Ubuntu 22.04+, Fedora 38+, RHEL 9.4+",
+    slug: "linux",
   },
 ];
-
-const archLabel = {
-  universal: "Universal",
-  x64: "Intel / x64",
-  arm64: "ARM64",
-};
 
 const groups = platforms.map((p) => ({
   ...p,
@@ -68,7 +74,9 @@ const buildBlock = `<code>${buildSteps.replace(
 ---
 
 <Base
-  title="Download"
+  title="Download Flume — BitTorrent client for Mac, Windows, Linux"
+  bareTitle
+  version={release?.tag.replace(/^v/, "")}
   description="Download Flume for macOS, Windows or Linux. Free and open source under Apache-2.0."
 >
   <section class="wrap head">
@@ -199,37 +207,11 @@ const buildBlock = `<code>${buildSteps.replace(
                 <p class="platform__req">{group.requires}</p>
               </div>
 
-              {group.assets.length ? (
-                <ul class="assets">
-                  {group.assets.map((asset, i) => (
-                    <li
-                      class:list={["asset", i === 0 && "is-primary"]}
-                      data-arch={asset.arch}
-                      data-format={asset.format}
-                    >
-                      <a class="asset__link" href={asset.url}>
-                        <span class="asset__main">
-                          <span class="asset__format">{asset.format}</span>
-                          <span class="asset__arch">
-                            {archLabel[asset.arch]}
-                          </span>
-                          <span class="asset__best" hidden>
-                            Best for your machine
-                          </span>
-                        </span>
-                        <span class="asset__blurb">{asset.blurb}</span>
-                        <span class="num asset__size">
-                          {formatBytes(asset.size)}
-                        </span>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p class="assets__none">
-                  No build for this platform in {release.tag}.
-                </p>
-              )}
+              <AssetList assets={group.assets} tag={release.tag} primary />
+
+              <a class="platform__more" href={`/download/${group.slug}/`}>
+                Installing on {group.label} &rarr;
+              </a>
             </section>
           ))}
         </div>
@@ -491,103 +473,33 @@ const buildBlock = `<code>${buildSteps.replace(
     font-size: var(--t-title);
   }
 
+  /* Same treatment as `.note__link` — this is the site's "read more" link,
+     and a second visual idiom for the same job is one too many. */
+  .platform__more {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--acc);
+    font-size: var(--t-small);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .platform__more:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
   .platform__req {
     margin-top: 0.3rem;
     color: var(--fg-2);
     font-size: var(--t-small);
   }
 
-  .assets {
-    display: grid;
-    gap: 0.5rem;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .asset__link {
-    display: grid;
-    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 1.25rem;
-    padding: 0.85rem 1rem;
-    border: 1px solid var(--line);
-    border-radius: var(--r-md);
-    background: var(--bg-0);
-    text-decoration: none;
-    transition:
-      border-color 0.14s ease,
-      background-color 0.14s ease;
-  }
-
-  .asset__link:hover {
-    border-color: var(--line-2);
-    background: var(--bg-2);
-  }
-
-  .asset.is-primary .asset__link {
-    border-color: var(--acc-dim);
-  }
-
   /* Applied at runtime, so it has to beat `.is-primary` above — the build-time
      lead of a section is not necessarily the file this visitor wants. */
-  .asset.is-yours .asset__link {
-    border-color: var(--acc);
-    background: var(--acc-deep);
-  }
-
-  .asset__best {
-    margin-left: 0.5rem;
-    padding: 0.1rem 0.4rem;
-    border-radius: var(--r-sm);
-    background: var(--acc);
-    color: var(--on-acc);
-    font-size: var(--t-micro);
-    font-weight: 600;
-    white-space: nowrap;
-  }
 
   /* Dimmed, never hidden. Downloading for another machine is a normal thing to
      be doing, and a link you cannot find is worse than one you must read past. */
-  .asset.is-other .asset__link {
-    opacity: 0.62;
-  }
-
-  .asset.is-other .asset__link:hover {
-    opacity: 1;
-  }
-
-  .asset__main {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-  }
-
-  .asset__format {
-    font-size: var(--t-small);
-    font-weight: 600;
-  }
-
-  .asset__arch {
-    font-size: var(--t-micro);
-    color: var(--fg-2);
-  }
-
-  .asset__blurb {
-    font-size: var(--t-small);
-    color: var(--fg-2);
-  }
-
-  .asset__size {
-    font-size: var(--t-micro);
-    color: var(--fg-3);
-    white-space: nowrap;
-  }
-
-  .assets__none {
-    color: var(--fg-3);
-    font-size: var(--t-small);
-  }
 
   /* ---- notes ---- */
   .notes {
@@ -675,16 +587,6 @@ const buildBlock = `<code>${buildSteps.replace(
   @media (max-width: 760px) {
     .notes {
       grid-template-columns: minmax(0, 1fr);
-    }
-
-    /* The blurb is the first thing that can go: format, architecture and size
-       are what someone actually picks on. */
-    .asset__link {
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    .asset__blurb {
-      display: none;
     }
   }
 </style>

@@ -1,0 +1,391 @@
+---
+import Base from "../../layouts/Base.astro";
+import AssetList from "../../components/AssetList.astro";
+import { latestRelease, type Os } from "../../lib/releases";
+
+/**
+ * One page per platform, under `/download/mac/`, `/download/windows/` and
+ * `/download/linux/`.
+ *
+ * These exist to answer "Flume for Mac" as a specific question rather than
+ * making someone read a three-platform page and find their third of it. That
+ * is also why each one carries content the others do not: an unsigned Windows
+ * installer and a notarized macOS one need genuinely different paragraphs, and
+ * three pages saying the same thing under different headings would be the kind
+ * of doorway page that deserves to be ignored.
+ *
+ * The slugs are `mac`, `windows`, `linux` — how the platform is typed, not how
+ * it is spelled in the interface. The headings still say macOS.
+ */
+export function getStaticPaths() {
+  return [
+    { params: { os: "mac" } },
+    { params: { os: "windows" } },
+    { params: { os: "linux" } },
+  ];
+}
+
+const { os: slug } = Astro.params;
+
+const release = await latestRelease();
+
+/** Whether this particular release actually carries a Fedora package. */
+const hasRpm = release?.assets.some((a) => a.format === "RPM") ?? false;
+
+/**
+ * Everything that differs by platform, in one place.
+ *
+ * `notes` is the part worth keeping honest. Each entry is a real difference in
+ * what happens when you run the file — signing, package choice, what the OS
+ * says — not a reworded version of the same reassurance.
+ */
+const copy: Record<
+  string,
+  {
+    key: Os;
+    label: string;
+    title: string;
+    description: string;
+    requires: string;
+    schemaOs: string;
+    lead: string;
+    notes: { heading: string; body: string }[];
+  }
+> = {
+  mac: {
+    key: "macos",
+    label: "macOS",
+    title: "Flume for Mac — BitTorrent client for macOS",
+    description:
+      "Download Flume for macOS. One universal build for Apple Silicon and Intel, signed and notarized, under 20 MB. Free and open source.",
+    requires: "macOS 12 Monterey or later",
+    schemaOs: "macOS 12.0",
+    lead: "One universal build covers Apple Silicon and Intel. It is signed and notarized, so it opens without an argument.",
+    notes: [
+      {
+        heading: "There is only one download",
+        /*
+         * No size in this sentence. The asset row directly above it carries
+         * the real figure, fetched from the API at build time, and a second
+         * copy written into prose is one that goes stale the first time the
+         * binary grows — as the home page's "roughly 17 MB" already has.
+         */
+        body: "The macOS build is a universal binary — Apple Silicon and Intel in the same file, picked at launch. You do not need to know which Mac you have, and there is no wrong choice to make.",
+      },
+      {
+        heading: "Gatekeeper will not stop you",
+        body: "The build is signed with a Developer ID and notarized by Apple, so it opens on first launch like anything from the App Store. If macOS does object, the download did not finish cleanly — fetch it again rather than working around the warning.",
+      },
+      {
+        heading: "Installing",
+        body: "Open the .dmg and drag Flume to Applications. Magnet links are handled once it has run for the first time, so open it directly before expecting a magnet link in a browser to reach it.",
+      },
+    ],
+  },
+  windows: {
+    key: "windows",
+    label: "Windows",
+    title: "Flume for Windows — BitTorrent client for Windows 10 and 11",
+    description:
+      "Download Flume for Windows 10 or 11, x64 or ARM64. Free and open source, under 6 MB. The installer is unsigned — this page explains what SmartScreen will say.",
+    requires: "Windows 10 or 11",
+    schemaOs: "Windows 10, Windows 11",
+    lead: "Two architectures and two installer formats. The builds are not code-signed, so Windows will have something to say about that.",
+    notes: [
+      {
+        heading: "SmartScreen will interrupt you",
+        body: "The Windows builds carry no code-signing certificate, so SmartScreen shows an “unrecognised app” panel with the Run button hidden behind More info. That is what an unsigned installer looks like on Windows — it is not a sign the download is damaged or that anything detected a problem. A certificate costs a few hundred pounds a year and this project does not have one yet.",
+      },
+      {
+        heading: "EXE or MSI?",
+        body: "Take the .exe unless you have a reason not to — it is the ordinary installer, and it is what the update path assumes. The .msi exists for managed deployment, where something else is installing Flume on your behalf and wants a package it can script.",
+      },
+      {
+        heading: "x64 or ARM64?",
+        body: "Almost every Windows PC is x64. Take ARM64 only if you know you have a Snapdragon or other ARM machine — a Surface Pro on ARM, for instance. The x64 build will run there under emulation, but the native one is meaningfully faster.",
+      },
+    ],
+  },
+  linux: {
+    key: "linux",
+    label: "Linux",
+    title: "Flume for Linux — BitTorrent client for Debian, Ubuntu, Fedora",
+    description:
+      "Download Flume for Linux as a .deb or AppImage. Built for Debian 12+, Ubuntu 22.04+, Fedora 38+ and RHEL 9.4+. Free and open source.",
+    requires: "Debian 12+, Ubuntu 22.04+, Fedora 38+, RHEL 9.4+",
+    schemaOs: "Linux",
+    lead: "A .deb for Debian and Ubuntu, and an AppImage that needs no package manager at all.",
+    notes: [
+      {
+        heading: "Take the .deb on Debian and Ubuntu",
+        body: "It installs through apt like anything else, registers the magnet handler, and puts Flume in your application menu. Debian 12 and Ubuntu 22.04 are the oldest releases it is built against, because that is where the WebKitGTK version it needs starts.",
+      },
+      {
+        heading: "The AppImage runs anywhere",
+        body: "One file, no install, no root. Download it, make it executable with chmod +x, and run it. It is the right answer on any distribution not covered by the packages, and the right answer if you would rather not install anything at all.",
+      },
+      hasRpm
+        ? {
+            heading: "Fedora and RHEL",
+            body: "Take the .rpm on Fedora, RHEL, Rocky and AlmaLinux. It is built inside a Fedora container, so its dependency metadata is the real thing rather than a translation of Debian's.",
+          }
+        : {
+            heading: "This release has no .rpm",
+            body: "The Fedora package jobs can fail independently of everything else, and for this release they did. On Fedora, RHEL, Rocky and AlmaLinux use the AppImage instead — it runs the same binary without needing a package at all.",
+          },
+    ],
+  },
+};
+
+const page = copy[slug!];
+const assets = release?.assets.filter((a) => a.os === page.key) ?? [];
+
+const published = release
+  ? new Date(release.publishedAt).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })
+  : null;
+
+/** The other two platforms, for the cross-links at the foot of the page. */
+const others = Object.entries(copy)
+  .filter(([key]) => key !== slug)
+  .map(([key, value]) => ({ slug: key, label: value.label }));
+---
+
+<Base
+  title={page.title}
+  bareTitle
+  description={page.description}
+  version={release?.version}
+  platform={{
+    slug: slug!,
+    label: page.label,
+    operatingSystem: page.schemaOs,
+  }}
+  breadcrumb={[
+    { name: "Flume", path: "/" },
+    { name: "Download", path: "/download/" },
+    { name: page.label, path: `/download/${slug}/` },
+  ]}
+>
+  <section class="wrap head">
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/download/">Download</a>
+      <span aria-hidden="true">/</span>
+      <span>{page.label}</span>
+    </nav>
+
+    <h1 class="head__title">Flume for {page.label}</h1>
+    <p class="lead head__lead">{page.lead}</p>
+    <p class="head__req">{page.requires}</p>
+
+    {
+      release ? (
+        <p class="head__version">
+          Version <strong>{release.version}</strong>, released {published}. Free
+          and open source under Apache-2.0.
+        </p>
+      ) : (
+        <p class="head__version">
+          This page could not reach GitHub when it was last built, so it cannot
+          list the files. The{" "}
+          <a
+            href="https://github.com/adamgreenwell/flume/releases/latest"
+            rel="noopener"
+          >
+            latest release
+          </a>{" "}
+          on GitHub always has them.
+        </p>
+      )
+    }
+  </section>
+
+  {
+    /*
+     * The release-candidate warning, on every platform page as it is on the
+     * index. Someone who arrived here from a search has not seen `/download/`
+     * and would otherwise install a pre-release without being told.
+     */
+    release?.prerelease && (
+      <section class="wrap">
+        <div class="rc">
+          <p>
+            This is a <strong>release candidate</strong>. It is a real build you
+            can install, but it has had far less use than a finished release,
+            and first-run behaviour on Windows and Linux has not had a manual
+            pass yet.
+          </p>
+          <p>
+            <a
+              href="https://github.com/adamgreenwell/flume/issues"
+              rel="noopener"
+            >
+              Report anything you hit
+            </a>{" "}
+            — that is precisely what a release candidate is for.
+          </p>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    release && (
+      <section class="wrap downloads">
+        <h2 class="sr-only">Downloads for {page.label}</h2>
+        <AssetList assets={assets} tag={release.tag} />
+      </section>
+    )
+  }
+
+  <section class="wrap notes">
+    {
+      page.notes.map((note) => (
+        <div class="note">
+          <h2 class="note__title">{note.heading}</h2>
+          <p>{note.body}</p>
+        </div>
+      ))
+    }
+  </section>
+
+  <section class="wrap elsewhere">
+    <h2 class="elsewhere__title">Flume runs elsewhere too</h2>
+    <ul class="elsewhere__list">
+      {
+        others.map((other) => (
+          <li>
+            <a href={`/download/${other.slug}/`}>Flume for {other.label} →</a>
+          </li>
+        ))
+      }
+      <li><a href="/download/">All downloads →</a></li>
+    </ul>
+  </section>
+</Base>
+
+<style>
+  .head {
+    padding-top: clamp(2.5rem, 1rem + 5vw, 4.5rem);
+  }
+
+  .crumbs {
+    font-size: var(--t-micro);
+    color: var(--fg-3);
+    margin-bottom: 1rem;
+  }
+
+  .crumbs a {
+    color: var(--fg-2);
+  }
+
+  .crumbs span {
+    margin: 0 0.15rem;
+  }
+
+  .head__title {
+    margin: 0.75rem 0 0.75rem;
+    font-size: var(--t-display);
+  }
+
+  .head__lead {
+    max-width: 46ch;
+    margin: 0 0 1rem;
+  }
+
+  .head__req {
+    font-size: var(--t-small);
+    color: var(--fg-2);
+    margin: 0 0 0.5rem;
+  }
+
+  .head__version {
+    font-size: var(--t-small);
+    color: var(--fg-3);
+    margin: 0;
+  }
+
+  .rc {
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--line-2);
+    border-radius: var(--r-md);
+    background: var(--bg-2);
+    font-size: var(--t-small);
+  }
+
+  .rc p {
+    margin: 0 0 0.5rem;
+  }
+
+  .rc p:last-child {
+    margin-bottom: 0;
+  }
+
+  .downloads {
+    margin-top: 2rem;
+  }
+
+  .notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+  }
+
+  .note {
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--bg-1);
+  }
+
+  .note__title {
+    margin: 0 0 0.5rem;
+    font-size: 1.02rem;
+  }
+
+  .note p {
+    margin: 0;
+    color: var(--fg-2);
+    font-size: var(--t-small);
+  }
+
+  .elsewhere {
+    margin-top: 2.5rem;
+  }
+
+  .elsewhere__title {
+    margin: 0 0 0.75rem;
+    font-size: 1.02rem;
+  }
+
+  .elsewhere__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--t-small);
+  }
+
+  .elsewhere__list a {
+    color: var(--acc);
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .elsewhere__list a:hover {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  @media (max-width: 760px) {
+    .notes {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+</style>

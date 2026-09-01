@@ -1,0 +1,171 @@
+---
+import { formatBytes, type Asset } from "../lib/releases";
+
+/**
+ * The download buttons for one platform.
+ *
+ * Extracted from `download.astro` when the per-platform pages arrived, because
+ * three copies of this markup would have been three places for the asset row
+ * to drift. The styles came with it: Astro scopes component CSS with a
+ * `data-astro-cid-*` attribute, so a rule left behind in `download.astro`
+ * would not have matched an element rendered from here — the list would have
+ * appeared correctly worded and completely unstyled.
+ *
+ * Deliberately dumb. It knows how to draw an asset row and nothing about which
+ * platform a visitor is on; `/download/` decorates the result afterwards with
+ * `is-yours` and `is-primary`, and the per-platform pages have no detection to
+ * do because the URL already said which platform it is about.
+ */
+interface Props {
+  /** Assets for this platform, already filtered and in display order. */
+  assets: Asset[];
+  /** Tag to name in the empty state, e.g. `v1.0.0`. */
+  tag: string;
+  /**
+   * Mark the first row as the recommended one.
+   *
+   * Off by default. On `/download/` the first asset of each platform is the
+   * obvious pick, but a page listing one platform's files has already made
+   * that choice by existing, and a second highlight adds nothing.
+   */
+  primary?: boolean;
+}
+
+const { assets, tag, primary = false } = Astro.props;
+
+const archLabel = {
+  universal: "Universal",
+  x64: "Intel / x64",
+  arm64: "ARM64",
+};
+---
+
+{
+  assets.length ? (
+    <ul class="assets">
+      {assets.map((asset, i) => (
+        <li
+          class:list={["asset", primary && i === 0 && "is-primary"]}
+          data-arch={asset.arch}
+          data-format={asset.format}
+        >
+          <a class="asset__link" href={asset.url}>
+            <span class="asset__main">
+              <span class="asset__format">{asset.format}</span>
+              <span class="asset__arch">{archLabel[asset.arch]}</span>
+              <span class="asset__best" hidden>
+                Best for your machine
+              </span>
+            </span>
+            <span class="asset__blurb">{asset.blurb}</span>
+            <span class="num asset__size">{formatBytes(asset.size)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  ) : (
+    <p class="assets__none">No build for this platform in {tag}.</p>
+  )
+}
+
+<style>
+  .assets {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .asset__link {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--bg-0);
+    text-decoration: none;
+    transition:
+      border-color 0.14s ease,
+      background-color 0.14s ease;
+  }
+
+  .asset__link:hover {
+    border-color: var(--line-2);
+    background: var(--bg-2);
+  }
+
+  .asset.is-primary .asset__link {
+    border-color: var(--acc-dim);
+  }
+
+  .asset.is-yours .asset__link {
+    border-color: var(--acc);
+    background: var(--acc-deep);
+  }
+
+  .asset__best {
+    margin-left: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--r-sm);
+    background: var(--acc);
+    color: var(--on-acc);
+    font-size: var(--t-micro);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .asset.is-other .asset__link {
+    opacity: 0.62;
+  }
+
+  .asset.is-other .asset__link:hover {
+    opacity: 1;
+  }
+
+  .asset__main {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .asset__format {
+    font-size: var(--t-small);
+    font-weight: 600;
+  }
+
+  .asset__arch {
+    font-size: var(--t-micro);
+    color: var(--fg-2);
+  }
+
+  .asset__blurb {
+    font-size: var(--t-small);
+    color: var(--fg-2);
+  }
+
+  .asset__size {
+    font-size: var(--t-micro);
+    color: var(--fg-3);
+    white-space: nowrap;
+  }
+
+  .assets__none {
+    color: var(--fg-3);
+    font-size: var(--t-small);
+  }
+
+  @media (max-width: 760px) {
+    /* The blurb is the first thing that can go: format, architecture and size
+       are what someone actually picks on. */
+    .asset__link {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .asset__blurb {
+      display: none;
+    }
+  }
+</style>

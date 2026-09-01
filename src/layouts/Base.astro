@@ -2,6 +2,8 @@
 import "../styles/global.css";
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import StructuredData from "../components/StructuredData.astro";
+import { verificationTags } from "../lib/verification";
 
 interface Props {
   /** Page title, before the site suffix. */
@@ -12,6 +14,18 @@ interface Props {
   image?: string;
   /** Suppress the site-name suffix, for the home page. */
   bareTitle?: boolean;
+  /**
+   * Latest version, for the `SoftwareApplication` node.
+   *
+   * Passed down rather than fetched here: the pages that know it have already
+   * called `latestRelease()`, and `releases.ts` does not memoise, so resolving
+   * it in the layout would spend a GitHub API call per page of the build.
+   */
+  version?: string;
+  /** The platform a per-platform download page is about, for the JSON-LD. */
+  platform?: { slug: string; label: string; operatingSystem: string };
+  /** Breadcrumb trail for the JSON-LD, root first. */
+  breadcrumb?: { name: string; path: string }[];
 }
 
 const {
@@ -19,6 +33,9 @@ const {
   description,
   image = "/og.png",
   bareTitle = false,
+  version,
+  platform,
+  breadcrumb,
 } = Astro.props;
 
 const fullTitle = bareTitle ? title : `${title} — Flume`;
@@ -44,6 +61,7 @@ const gaBootstrap = [
   "gtag('js', new Date());",
   `gtag('config', '${GA_ID}');`,
 ].join("\n");
+const verifications = verificationTags();
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const ogImage = new URL(image, Astro.site);
 ---
@@ -65,6 +83,17 @@ const ogImage = new URL(image, Astro.site);
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <StructuredData
+      version={version}
+      platform={platform}
+      breadcrumb={breadcrumb}
+    />
+
+    {
+      /* Ownership proofs for the webmaster consoles. See lib/verification.ts. */
+    }
+    {verifications.map((v) => <meta name={v.name} content={v.content} />)}
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Flume" />

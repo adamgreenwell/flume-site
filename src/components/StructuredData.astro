@@ -1,0 +1,112 @@
+---
+/**
+ * JSON-LD describing Flume as a software entity.
+ *
+ * This exists for one reason: the name collides. "Flume" is a musician with
+ * orders of magnitude more search volume, a water sensor company, an Apache
+ * data-ingestion project, an MPMC channel crate and a React node editor — and,
+ * worst of all, it soft-matches onto **Flud**, an established Android torrent
+ * client one letter away that currently owns the whole category SERP.
+ *
+ * Prose cannot fix that. A footer note saying "we are not those" is a claim a
+ * site makes about itself. `sameAs` is different: it is a machine-readable
+ * assertion that these URLs are the *same entity* as this one, and it is the
+ * mechanism by which a search engine builds "Flume (BitTorrent client)" as a
+ * node distinct from the other five.
+ *
+ * So the `sameAs` list is the load-bearing part of this file, not the prose
+ * fields. Add to it whenever the project gains a canonical presence anywhere.
+ */
+interface Props {
+  /** Latest version string, e.g. "1.0.0", when the build resolved one. */
+  version?: string;
+  /**
+   * The platform this page is about, on the per-platform download pages.
+   *
+   * This changes the `@id`, and that is the whole point of it being one prop
+   * rather than three. An `@id` names an entity: every page repeating
+   * `#app` while claiming a different `operatingSystem` would not be three
+   * descriptions of three builds, it would be three contradictory claims about
+   * one thing — "Flume runs on macOS 12" and "Flume runs on Windows 10 and 11"
+   * asserted of the same node. Whichever a crawler read last would win.
+   *
+   * So a platform page describes its own build as its own node, tied back to
+   * the product by `applicationSuite`, and the pages that speak for the
+   * product as a whole keep `#app` to themselves.
+   */
+  platform?: { slug: string; label: string; operatingSystem: string };
+  /** Trail for a `BreadcrumbList`, root first. Omitted on top-level pages. */
+  breadcrumb?: { name: string; path: string }[];
+}
+
+const { version, platform, breadcrumb } = Astro.props;
+
+const REPO = "https://github.com/adamgreenwell/flume";
+const site = Astro.site!.href.replace(/\/$/, "");
+
+const application = {
+  "@type": "SoftwareApplication",
+  "@id": platform ? `${site}/#app-${platform.slug}` : `${site}/#app`,
+  name: platform ? `Flume for ${platform.label}` : "Flume",
+  alternateName: "Flume BitTorrent Client",
+  ...(platform ? { applicationSuite: "Flume" } : {}),
+  applicationCategory: "https://schema.org/UtilitiesApplication",
+  applicationSubCategory: "BitTorrent client",
+  operatingSystem:
+    platform?.operatingSystem ?? "macOS 12+, Windows 10, Windows 11, Linux",
+  url: platform ? `${site}/download/${platform.slug}/` : `${site}/`,
+  downloadUrl: platform
+    ? `${site}/download/${platform.slug}/`
+    : `${site}/download/`,
+  releaseNotes: `${site}/changelog/`,
+  license: "https://www.apache.org/licenses/LICENSE-2.0",
+  ...(version ? { softwareVersion: version } : {}),
+
+  /*
+   * The disambiguation payload. Every URL here is a property that *is* Flume,
+   * which is what lets the entity be told apart from the other Flumes and from
+   * Flud. The footer's "unrelated to" note is the human-readable twin of this.
+   */
+  sameAs: [REPO, `${REPO}/wiki`, `${REPO}/releases`],
+
+  author: { "@id": `${site}/#author` },
+
+  // ── TODO(adam): see below ────────────────────────────────────────────────
+};
+
+const author = {
+  "@type": "Person",
+  "@id": `${site}/#author`,
+  name: "Adam Greenwell",
+  url: "https://adamgreenwell.com",
+};
+
+/**
+ * `BreadcrumbList`, which is what lets a result render
+ * "flume.adamgreenwell.com › Download › macOS" instead of a bare URL.
+ *
+ * Only emitted where there is a real hierarchy to describe. A single-item
+ * trail is not a breadcrumb, it is a link to the page you are already on.
+ */
+const breadcrumbList =
+  breadcrumb && breadcrumb.length > 1
+    ? [
+        {
+          "@type": "BreadcrumbList",
+          itemListElement: breadcrumb.map((crumb, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            name: crumb.name,
+            item: `${site}${crumb.path}`,
+          })),
+        },
+      ]
+    : [];
+
+const graph = {
+  "@context": "https://schema.org",
+  "@graph": [application, author, ...breadcrumbList],
+};
+---
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(graph)} />

@@ -97,6 +97,13 @@ plausible and means nothing. Both cases emit no `lastmod` at all instead.
 A page whose source is not yet committed also gets no `lastmod`, which is why a
 newly added page has none until its first commit.
 
+`npm run check:lastmod` asserts the sitemap against whichever clone it is
+running in — dates required with full history, no dates permitted without —
+and CI runs it in both jobs, one shallow and one with `fetch-depth: 0`. Without
+that second job the feature could break entirely and every check would stay
+green, because a suppressed `lastmod` is indistinguishable from a broken one
+if nothing ever builds with history.
+
 `src/lib/verification.ts` holds the webmaster-console ownership tokens. They
 are empty until each console is set up, and an empty one renders no tag at all
 — an empty `content` attribute reads as a failed check rather than an absent

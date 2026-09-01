@@ -16,7 +16,8 @@
     "preview": "astro preview",
     "check": "astro check && prettier --check .",
     "format": "prettier --write .",
-    "check:spacing": "node scripts/check-spacing.mjs"
+    "check:spacing": "node scripts/check-spacing.mjs",
+    "check:lastmod": "node scripts/check-lastmod.mjs"
   },
   "dependencies": {
     "@astrojs/mdx": "^7.0.8",

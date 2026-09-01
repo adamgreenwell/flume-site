@@ -18,6 +18,11 @@ jobs:
     name: Check and build
     runs-on: ubuntu-latest
     steps:
+      # Deliberately left at the default `fetch-depth: 1`. A shallow clone is
+      # what a build host gives you, and it is the branch of
+      # `scripts/lastmod.mjs` that suppresses every date — so this job is what
+      # proves the suppression happens and does not break the build. The
+      # `fixture` job below fetches full history and proves the other branch.
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
@@ -57,11 +62,22 @@ jobs:
       - name: Check for words glued together by markup
         run: npm run check:spacing
 
+      - name: Confirm the sitemap's lastmod matches what this clone supports
+        run: npm run check:lastmod
+
   fixture:
     name: Build with a release present
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # `scripts/lastmod.mjs` reads each page's last commit, and in a
+          # shallow clone every file resolves to the one fetched commit — so
+          # it emits nothing rather than a uniform date that would look
+          # plausible and mean nothing. Without full history here, no job in
+          # this workflow would ever see a `lastmod` at all, and the feature
+          # could break completely while every check stayed green.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v7
         with:
@@ -100,6 +116,9 @@ jobs:
       # a version, and the glued text it can produce, was never inspected.
       - name: Check for words glued together by markup
         run: npm run check:spacing
+
+      - name: Confirm the sitemap's lastmod matches what this clone supports
+        run: npm run check:lastmod
 
       - name: Confirm the degraded release paths render honestly
         env:

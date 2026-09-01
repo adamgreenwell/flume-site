@@ -11,6 +11,8 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "postbuild": "node scripts/indexnow.mjs",
+    "indexnow": "INDEXNOW=1 node scripts/indexnow.mjs",
     "preview": "astro preview",
     "check": "astro check && prettier --check .",
     "format": "prettier --write .",

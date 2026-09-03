@@ -1,5 +1,6 @@
 ---
 import Logo from "./Logo.astro";
+import MadeWith from "./MadeWith.astro";
 
 const year = new Date().getFullYear();
 
@@ -97,7 +98,7 @@ const columns = [
     </nav>
   </div>
 
-  <div class="wrap">
+  <div class="wrap footer__base">
     <p class="footer__note">
       Flume is unrelated to the <a
         href="https://crates.io/crates/flume"
@@ -107,6 +108,8 @@ const columns = [
         rel="noopener">flume.dev</a
       > (a React node editor).
     </p>
+
+    <MadeWith />
   </div>
 </footer>
 
@@ -177,10 +180,25 @@ const columns = [
     color: var(--acc);
   }
 
-  .footer__note {
+  /*
+   * The closing rule now carries two things rather than one: the naming note
+   * on the left, the sign-off on the right. The border and the space above it
+   * moved up to the row so the two sit on the same line under it, the way
+   * pastey.io sets its own footer out.
+   */
+  .footer__base {
     margin-top: 3rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--line);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1.25rem 2.5rem;
+  }
+
+  .footer__note {
+    margin: 0;
     color: var(--fg-3);
     font-size: var(--t-micro);
     max-width: 72ch;

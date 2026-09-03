@@ -44,6 +44,8 @@
 /docs/ci-cd-and-releases/*       https://github.com/adamgreenwell/flume/wiki/CI-CD-and-Releases      301!
 /docs/signing-and-distribution   https://github.com/adamgreenwell/flume/wiki/Signing-and-Distribution 301!
 /docs/signing-and-distribution/* https://github.com/adamgreenwell/flume/wiki/Signing-and-Distribution 301!
+/docs/privacy                    https://github.com/adamgreenwell/flume/wiki/Privacy                 301!
+/docs/privacy/*                  https://github.com/adamgreenwell/flume/wiki/Privacy                 301!
 /docs/platform-notes             https://github.com/adamgreenwell/flume/wiki/Platform-Notes          301!
 /docs/platform-notes/*           https://github.com/adamgreenwell/flume/wiki/Platform-Notes          301!
 /docs/smoke-test-checklist       https://github.com/adamgreenwell/flume/wiki/Smoke-Test-Checklist    301!

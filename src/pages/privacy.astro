@@ -26,9 +26,9 @@ const UPDATED = "31 August 2026";
     <p class="eyebrow">Privacy</p>
     <h1 class="head__title">What this site collects.</h1>
     <p class="lead head__lead">
-      Short version: two analytics tools on the website, nothing in the
-      application, and no way to send us anything about yourself even if you
-      wanted to.
+      Short version: two analytics tools on this website, and an application
+      that collects nothing unless you switch it on and cannot identify you if
+      you do.
     </p>
     <p class="updated">Last updated {UPDATED}</p>
   </section>
@@ -107,16 +107,149 @@ const UPDATED = "31 August 2026";
     <section class="block">
       <h2>The application</h2>
       <p>
-        Flume itself sends us nothing. There is no analytics library in it, no
-        automatic update check, and no account — verified in the source, which
-        is <a href="https://github.com/adamgreenwell/flume" rel="noopener"
-          >public</a
-        > if you would rather check than take our word for it.
+        Flume collects nothing by default. It asks once, during first run,
+        whether it may send anonymous usage counts, and sends nothing at all
+        unless you say yes. Declining is permanent — it does not ask again.
+      </p>
+
+      <div class="tools">
+        <div class="tool">
+          <h3>Diagnostics report</h3>
+          <p>
+            <strong>Never sent anywhere.</strong> Builds a report you can paste into
+            a bug report, shown on screen first so you copy it yourself. Flume has
+            no way to transmit it.
+          </p>
+        </div>
+
+        <div class="tool">
+          <h3>Usage counts</h3>
+          <p>
+            <strong>Off unless you turn them on.</strong> Settings → Privacy → Send
+            anonymous usage counts. Everything below describes what happens only after
+            you do.
+          </p>
+        </div>
+      </div>
+
+      <h3>What usage counts contain</h3>
+      <p>
+        At most once an hour, and once when you quit, five fields go to a
+        collector we run:
+      </p>
+
+      <table class="fields">
+        <tbody>
+          <tr>
+            <th scope="row"><span class="num">installId</span></th>
+            <td>
+              A random UUID made on your machine when you consented. Not derived
+              from your hardware, network, or username — it has no relationship
+              to you, so it cannot be linked back to you or matched against any
+              other application.
+            </td>
+          </tr>
+          <tr>
+            <th scope="row"><span class="num">appVersion</span></th>
+            <td>Which version of Flume, e.g. 1.0.0.</td>
+          </tr>
+          <tr>
+            <th scope="row"><span class="num">os</span></th>
+            <td>macOS, Windows, or Linux.</td>
+          </tr>
+          <tr>
+            <th scope="row"><span class="num">arch</span></th>
+            <td>x86_64 or aarch64.</td>
+          </tr>
+          <tr>
+            <th scope="row"><span class="num">events</span></th>
+            <td>
+              Which things happened — launched, a torrent added, a torrent
+              completed, a setting changed, an operation failed, and a handful
+              more.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        Two things keep that from identifying anyone. Counts are sent as{" "}
+        <strong>ranges rather than exact numbers</strong>, because a range is
+        what anyone would graph and "the install with 1,483 torrents" is one
+        identifiable person. And events are timed to the hour, not the second.
+      </p>
+
+      <p>
+        There is <strong>no free-text field anywhere in the format</strong>.
+        Every value Flume can send comes from a fixed list, which is why{" "}
+        <em>which</em> setting you changed is sent and what you changed it to is not.
+      </p>
+
+      <h3>What it never collects</h3>
+      <ul>
+        <li>
+          <strong>What you download.</strong> No torrent names, file names, info hashes,
+          or magnet links.
+        </li>
+        <li>
+          <strong>Who you download it from.</strong> No tracker addresses, peer addresses,
+          or DHT nodes.
+        </li>
+        <li>
+          <strong>Where you put it.</strong> No file paths, folder names, or drive
+          names.
+        </li>
+        <li>
+          <strong>Who you are.</strong> No account, email, name, machine identifier,
+          hardware serial, or MAC address.
+        </li>
+      </ul>
+
+      <p>
+        The collector is a Cloudflare Worker writing to a small database, and
+        its source is{" "}
+        <a
+          href="https://github.com/adamgreenwell/flume/tree/main/collector"
+          rel="noopener">in the repository</a
+        > — around 250 lines, short enough to read in full. It does not store your
+        IP address or your user agent: the code never reads either, and the database
+        has no column for them. Cloudflare sees your IP the way any web server does,
+        but nothing we control writes it down.
+      </p>
+
+      <h3>Turning it off</h3>
+      <p>
+        Same switch, immediately, with no restart. The install ID and any queued
+        events are deleted from your machine. What was already received cannot
+        be tied back to you — the ID is gone from your side and was never linked
+        to you in the first place — so there is nothing to request the deletion
+        of.
+      </p>
+
+      <p class="note">
+        <strong>One honest limitation, in the diagnostics report.</strong> It strips
+        paths, addresses, URLs, and info hashes by pattern, but torrent names have
+        no pattern — they are matched against your current library. A log line naming
+        a torrent you already removed has nothing to match and can survive. That is
+        exactly why the report is shown before it is copied: you are the only person
+        who can recognise it. Read it before you paste it.
+      </p>
+
+      <h3>Everything Flume connects to</h3>
+      <p>
+        A torrent client cannot be silent on the network. This is the complete
+        list: trackers listed in the torrents you add, peers (directly or
+        through your SOCKS5 proxy), the DHT if you leave it enabled, your router
+        if UPnP is on, and the usage collector only if you opted in.
       </p>
       <p>
-        It is not silent on the network, because a torrent client cannot be. It
-        talks to trackers, to peers, and to the distributed hash table. It does
-        not talk to us.
+        There is no update checker, no crash reporter, no analytics SDK, and no
+        font or asset fetching — the fonts are bundled, so the interface renders
+        with no network at all. The full detail is on{" "}
+        <a
+          href="https://github.com/adamgreenwell/flume/wiki/Privacy"
+          rel="noopener">the app's privacy page</a
+        >, including every event and what it carries.
       </p>
     </section>
 
@@ -237,6 +370,50 @@ const UPDATED = "31 August 2026";
     color: var(--acc);
     text-decoration: underline;
     text-underline-offset: 2px;
+  }
+
+  .fields {
+    width: 100%;
+    margin-top: 1.25rem;
+    border-collapse: collapse;
+    font-size: var(--t-small);
+  }
+
+  .fields th,
+  .fields td {
+    padding: 0.7rem 0.9rem 0.7rem 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+    color: var(--fg-1);
+    font-weight: 400;
+  }
+
+  .fields th {
+    width: 9.5rem;
+    padding-right: 1.25rem;
+    white-space: nowrap;
+  }
+
+  .fields tr:last-child th,
+  .fields tr:last-child td {
+    border-bottom: 0;
+  }
+
+  @media (max-width: 560px) {
+    .fields th,
+    .fields td {
+      display: block;
+      width: auto;
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .fields td {
+      padding-top: 0.3rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--line);
+    }
   }
 
   .tools {

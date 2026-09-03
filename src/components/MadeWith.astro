@@ -1,0 +1,113 @@
+---
+/**
+ * The colophon line, carried over from pastey.io so the two sites sign off the
+ * same way: "Made with ♥ and 🐿 in Kent, Ohio".
+ *
+ * Two things differ from the original, both because this site is themed and
+ * that one is not:
+ *
+ *   1. The marks are inlined rather than served as `<img>`. Pastey ships them
+ *      as two black-filled SVG files, which is fine on a page that is always
+ *      light. Here the footer is dark by default and light by preference or
+ *      toggle, so a fixed fill would go invisible on one of them. Inlined,
+ *      they take `currentColor` and follow the paragraph — no second colour to
+ *      keep in sync, and no two extra requests for 400 bytes of path data.
+ *   2. They are sized in `em`, so they track the type ramp instead of being
+ *      pinned at 18px. The heart lands on Pastey's 18px at the size this line
+ *      is set; the squirrel is deliberately smaller, for the reason given
+ *      against `.madewith__mark` below.
+ *
+ * The paths are the originals, unmodified: the heart is a clean 64-unit
+ * drawing, the squirrel is a trace, which is why it keeps its `translate/scale`
+ * wrapper and a 63-unit height.
+ *
+ * The marks stand in for words, so they are named rather than hidden —
+ * `aria-hidden` here would have a screen reader say "Made with and in Kent,
+ * Ohio". The names are Pastey's own alt text.
+ */
+---
+
+<p class="madewith">
+  Made with{" "}
+  <svg
+    class="madewith__mark"
+    viewBox="0 0 64 64"
+    role="img"
+    aria-label="love"
+    focusable="false"
+  >
+    <path
+      fill="currentColor"
+      d="M45.223,6A15.62,15.62,0,0,0,32,13.263,15.62,15.62,0,0,0,18.777,6,15.741,15.741,0,0,0,7.325,32.579L31.276,57.69a1,1,0,0,0,1.448,0L56.675,32.579l0-.005A15.741,15.741,0,0,0,45.223,6Z"
+    ></path>
+  </svg>{" "}
+  and{" "}
+  <svg
+    class="madewith__mark madewith__mark--squirrel"
+    viewBox="0 0 64 63"
+    role="img"
+    aria-label="squirrels"
+    focusable="false"
+  >
+    <g transform="translate(0,63) scale(0.1,-0.1)" fill="currentColor">
+      <path
+        d="M50 612 c-27 -13 -37 -26 -44 -55 -14 -56 13 -80 99 -85 39 -3 65 -9 65 -16 0 -6 -25 -42 -54 -79 -97 -121 -93 -216 12 -324 47 -48 85 -56 242 -51 99 3 131 21 48 26 -27 2 -48 5 -48 7 0 3 9 19 20 37 11 18 20 49 20 70 l0 36 40 -5 c28 -4 50 0 81 16 25 13 51 20 64 17 14 -4 28 0 35 9 10 13 9 19 -6 36 -14 16 -25 19 -55 14 -20 -4 -39 -2 -43 3 -3 5 7 9 22 9 52 0 82 12 82 34 0 38 -28 86 -69 119 -23 18 -41 39 -41 47 0 26 -37 12 -61 -24 -28 -42 -85 -67 -136 -57 -32 6 -32 6 -18 35 39 75 -1 152 -96 182 -66 22 -115 21 -159 -1z"
+      ></path>
+    </g>
+  </svg>{" "}
+  in Kent, Ohio
+</p>
+
+<style>
+  /*
+   * A shade brighter than the fine print it sits beside (`--fg-3`) and a step
+   * up in size, which is the relationship Pastey draws too: the sign-off is a
+   * signature, the note next to it is a disclaimer.
+   */
+  .madewith {
+    margin: 0;
+    color: var(--fg-2);
+    font-size: var(--t-small);
+    line-height: 1.6;
+    white-space: nowrap;
+  }
+
+  /*
+   * The sizes and offsets below are measured rather than guessed. At 14px this
+   * face has a 7.1px x-height and a 10.1px cap-height, and the line is mixed
+   * case, so both marks are centred on `baseline - 5px` — the optical middle of
+   * a line that has capitals in it. That is what the two `vertical-align`
+   * values work out to.
+   *
+   * The two drawings do not fill their boxes equally. The heart is inset about
+   * a tenth of its viewBox on every side; the squirrel, being a trace, runs
+   * edge to edge. Given the same box the squirrel draws 17.6px of ink against
+   * the heart's 14.6px, which reads as a squirrel beside a much smaller heart.
+   * The boxes below bring the ink to 15.4 and 14.6 instead — near enough level,
+   * the squirrel left a shade taller because a standing figure carries less
+   * weight than a solid shape at the same height.
+   *
+   * The margin is the gap Pastey gets from `mx-1`. Both marks sit close to
+   * flush with their boxes, so the word space either side is not enough on its
+   * own to keep them off the words.
+   */
+  .madewith__mark {
+    /*
+     * The reset in `global.css` puts every `svg` on `display: block`, which is
+     * right everywhere else on the site — the other marks are all flex children
+     * and the block avoids the inline descender gap. These two are glyphs in a
+     * sentence, though, and a block one breaks the line on each side of it.
+     */
+    display: inline-block;
+    width: 1.28em;
+    height: 1.28em;
+    margin-inline: 0.28em;
+    vertical-align: -0.28em;
+  }
+
+  .madewith__mark--squirrel {
+    width: 1.1em;
+    height: 1.1em;
+    vertical-align: -0.19em;
+  }
+</style>
